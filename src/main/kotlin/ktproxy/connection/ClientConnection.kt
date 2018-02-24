@@ -51,6 +51,7 @@ class ClientConnection(
 
     @Throws(IOException::class, FrameException::class)
     suspend fun init() {
+        proxySocketChannel = AsynchronousSocketChannel.open()
         proxySocketChannel.aConnect(InetSocketAddress(addr, port))
 
         encryptCipher = Cipher(CipherModes.AES_256_CTR, key)
