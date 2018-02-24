@@ -58,10 +58,10 @@ class ClientConnection(
         val iv = encryptCipher.IVorNonce!!
         val encryptIVFrame = Frame(FrameType.CLIENT, FrameContentType.BINARY, iv)
         proxySocketChannel.aWrite(ByteBuffer.wrap(encryptIVFrame.frameByteArray))
-        println("send encrypt iv")
+//        println("send encrypt iv")
 
         val decryptIVFrame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.SERVER)
-        println("get decrypt iv")
+//        println("get decrypt iv")
         val decryptIV = decryptIVFrame.content
         decryptCipher = Cipher(CipherModes.AES_256_CTR, key, decryptIV)
     }

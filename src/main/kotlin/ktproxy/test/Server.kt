@@ -70,6 +70,7 @@ class Server(
         try {
             socketChannel.aConnect(InetSocketAddress(InetAddress.getByAddress(socksInfo.addr), socksInfo.port))
         } catch (e: IOException) {
+            e.printStackTrace()
             socketChannel.close()
             connection.close()
             return
@@ -81,10 +82,12 @@ class Server(
                 val data = try {
                     connection.read()
                 } catch (e: FrameException) {
+                    e.printStackTrace()
                     socketChannel.close()
                     connection.close()
                     return@async
                 } catch (e: IOException) {
+                    e.printStackTrace()
                     socketChannel.close()
                     connection.close()
                     return@async
@@ -93,6 +96,7 @@ class Server(
                 try {
                     socketChannel.aWrite(ByteBuffer.wrap(data))
                 } catch (e: IOException) {
+                    e.printStackTrace()
                     socketChannel.close()
                     connection.close()
                     return@async
@@ -111,6 +115,7 @@ class Server(
                         return@async
                     }
                 } catch (e: IOException) {
+                    e.printStackTrace()
                     socketChannel.close()
                     connection.close()
                     return@async
@@ -124,10 +129,12 @@ class Server(
                 try {
                     connection.write(data)
                 } catch (e: IOException) {
+                    e.printStackTrace()
                     socketChannel.close()
                     connection.close()
                     return@async
                 } catch (e: ConnectionException) {
+                    e.printStackTrace()
                     socketChannel.close()
                     connection.close()
                     return@async
