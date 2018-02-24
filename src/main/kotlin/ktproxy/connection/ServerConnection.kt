@@ -18,7 +18,7 @@ class ServerConnection(
     private val readBuffer = ByteBuffer.allocate(8192)
 
     private var isClosed = false
-    
+
     private lateinit var encryptCipher: Cipher
     private lateinit var decryptCipher: Cipher
 
@@ -36,7 +36,13 @@ class ServerConnection(
         if (isClosed) throw ConnectionException("connection is closed")
 
         val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)
-        return decryptCipher.decrypt(frame.content)
+        val plain = decryptCipher.decrypt(frame.content)
+        if (plain.contentEquals("fin".toByteArray())) {
+            isClosed = true
+            throw ConnectionException("connection is closed")
+        }
+
+        return plain
     }
 
     @Throws(IOException::class, FrameException::class)
@@ -51,8 +57,15 @@ class ServerConnection(
         decryptCipher = Cipher(CipherModes.AES_256_CTR, key, decryptIVFrame)
     }
 
-    fun close() {
-        proxySocketChannel.close()
-        isClosed = true
+    suspend fun close() {
+        if (!isClosed) {
+            try {
+                write("fin".toByteArray())
+            } finally {
+                proxySocketChannel.close()
+                isClosed = true
+            }
+
+        } else return
     }
 }
