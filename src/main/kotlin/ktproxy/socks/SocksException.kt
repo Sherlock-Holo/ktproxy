@@ -1,3 +1,5 @@
 package ktproxy.socks
 
-class SocksException(reason: String) : Throwable(reason)
+import ktproxy.KtproxyException
+
+class SocksException(reason: String) : KtproxyException(reason)
