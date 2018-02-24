@@ -15,7 +15,8 @@ fun main(args: Array<String>) = runBlocking<Unit> {
     val buffer = ByteBuffer.allocate(8192)
     val frame = Frame.buildFrame(socketChannel, buffer, FrameType.CLIENT)
     println(String(frame.content))
-    buffer.put(Frame(FrameType.SERVER, FrameContentType.BINARY, File("/tmp/randomfile").readBytes()).frameByteArray)
+//    buffer.put(Frame(FrameType.SERVER, FrameContentType.BINARY, File("/tmp/randomfile").readBytes()).frameByteArray)
+    buffer.put(Frame(FrameType.SERVER, FrameContentType.BINARY, "holo".toByteArray()).frameByteArray)
     buffer.flip()
     socketChannel.aWrite(buffer)
 }

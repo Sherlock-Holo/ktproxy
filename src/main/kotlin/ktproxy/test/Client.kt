@@ -42,11 +42,11 @@ class Client(
         val socks = Socks(socketChannel, buffer)
         socks.init()
         if (!socks.isSuccessful) {
-            println("socks handshake failed")
+//            println("socks handshake failed")
             socketChannel.close()
             return
         }
-        println("socks handshake successful")
+//        println("socks handshake successful")
 
         val connection = ClientConnection(proxyAddr, proxyPort, key)
         try {
@@ -54,15 +54,17 @@ class Client(
         } catch (e: IOException) {
             socketChannel.close()
             connection.close()
-            println("connection init failed")
+            e.printStackTrace()
             return
         } catch (e: FrameException) {
             socketChannel.close()
             connection.close()
-            println("connection init failed")
+            e.printStackTrace()
             return
         }
         println("connection init successful")
+
+//        connection.init()
 
         try {
             connection.write(socks.targetAddress)

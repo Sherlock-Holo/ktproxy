@@ -1,6 +1,7 @@
 package ktproxy.frame
 
 import kotlinx.coroutines.experimental.nio.aRead
+import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousSocketChannel
 import java.util.*
@@ -85,6 +86,7 @@ class Frame(
 
             FrameType.SERVER -> {
                 maskKey = null
+                val frameBuffer: ByteBuffer
 
                 when {
                     content.size <= 125 -> {
@@ -93,10 +95,10 @@ class Frame(
 
                         frameByteArray = ByteArray(2 + payloadLength)
 
-                        val frameBuffer = ByteBuffer.wrap(frameByteArray)
+                        frameBuffer = ByteBuffer.wrap(frameByteArray)
                         frameBuffer.put(opcode.toByte())
                         frameBuffer.put(initPayloadLength.toByte())
-                        frameBuffer.put(content)
+//                        frameBuffer.put(content)
                     }
                     content.size <= 65535 -> {
                         val tmp = ByteArray(2)
@@ -105,11 +107,11 @@ class Frame(
 
                         frameByteArray = ByteArray(2 + 2 + payloadLength)
 
-                        val frameBuffer = ByteBuffer.wrap(frameByteArray)
+                        frameBuffer = ByteBuffer.wrap(frameByteArray)
                         frameBuffer.put(opcode.toByte())
                         frameBuffer.put(initPayloadLength.toByte())
                         frameBuffer.putShort(payloadLength.toShort())
-                        frameBuffer.put(content)
+//                        frameBuffer.put(content)
                     }
                     else -> {
                         val tmp = ByteArray(8)
@@ -118,19 +120,22 @@ class Frame(
 
                         frameByteArray = ByteArray(2 + 8 + payloadLength)
 
-                        val frameBuffer = ByteBuffer.wrap(frameByteArray)
+                        frameBuffer = ByteBuffer.wrap(frameByteArray)
                         frameBuffer.put(opcode.toByte())
                         frameBuffer.put(initPayloadLength.toByte())
                         frameBuffer.putLong(payloadLength.toLong())
-                        frameBuffer.put(content)
+//                        frameBuffer.put(content)
                     }
                 }
+                frameBuffer.put(content)
             }
         }
     }
 
 
     companion object {
+
+        @Throws(IOException::class, FrameException::class)
         suspend fun buildFrame(socketChannel: AsynchronousSocketChannel, buffer: ByteBuffer, frameType: FrameType): Frame {
             var length = 0
             val contentType: FrameContentType
