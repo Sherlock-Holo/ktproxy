@@ -201,6 +201,7 @@ class Socks(private val socketChannel: AsynchronousSocketChannel, val buffer: By
             else -> throw SocksException("unexpected atyp")
         }
 
+        buffer.put(byteArrayOf(5, 0, 0, 4))
         val replyAddress = Inet6Address.getByName("::1").address
         buffer.put(replyAddress)
         buffer.putShort(0)
