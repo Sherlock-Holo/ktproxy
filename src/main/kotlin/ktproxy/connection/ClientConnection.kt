@@ -13,7 +13,7 @@ import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousSocketChannel
 
-class clientConnection(
+class ClientConnection(
         private val addr: String,
         private val port: Int,
         private val key: ByteArray
@@ -26,7 +26,7 @@ class clientConnection(
     private lateinit var encryptCipher: Cipher
     private lateinit var decryptCipher: Cipher
 
-    @Throws(IOException::class, ConnectionException::class)
+    @Throws(ConnectionException::class, IOException::class)
     override suspend fun write(data: ByteArray) {
         if (isClosed) throw ConnectionException("connection is closed")
 
@@ -40,7 +40,13 @@ class clientConnection(
         if (isClosed) throw ConnectionException("connection is closed")
 
         val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.SERVER)
-        return decryptCipher.decrypt(frame.content)
+        val plain = decryptCipher.decrypt(frame.content)
+        if (plain.contentEquals("fin".toByteArray())) {
+            isClosed = true
+            throw ConnectionException("connection is closed")
+        }
+
+        return plain
     }
 
     @Throws(IOException::class, FrameException::class)
@@ -57,8 +63,15 @@ class clientConnection(
         decryptCipher = Cipher(CipherModes.AES_256_CTR, key, decryptIV)
     }
 
-    fun close() {
-        proxySocketChannel.close()
-        isClosed = true
+    suspend fun close() {
+        if (!isClosed) {
+            try {
+                write("fin".toByteArray())
+            } finally {
+                proxySocketChannel.close()
+                isClosed = true
+            }
+
+        } else return
     }
 }
