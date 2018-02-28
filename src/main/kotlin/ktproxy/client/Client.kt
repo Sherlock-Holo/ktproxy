@@ -1,4 +1,4 @@
-package ktproxy.test
+package ktproxy.client
 
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.delay
