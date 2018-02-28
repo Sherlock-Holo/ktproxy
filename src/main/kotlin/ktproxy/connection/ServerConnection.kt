@@ -51,7 +51,7 @@ class ServerConnection(
                 return when {
                     plain.contentEquals("fin".toByteArray()) -> null
 
-                    plain.contentEquals("rst".toByteArray()) -> throw ConnectionException("connection reset by peer")
+//                    plain.contentEquals("rst".toByteArray()) -> throw ConnectionException("connection reset by peer")
 
                     else -> plain
                 }
@@ -73,7 +73,7 @@ class ServerConnection(
         decryptCipher = Cipher(CipherModes.AES_256_CTR, key, decryptIV)
     }
 
-    private fun close() {
+    fun close() {
         shutdownStatus = 3
         proxySocketChannel.close()
     }
@@ -110,11 +110,11 @@ class ServerConnection(
         }
     }
 
+    /*@Deprecated("will delete it")
     suspend fun errorClose() {
         try {
             write("rst".toByteArray())
         } finally {
-            close()
         }
-    }
+    }*/
 }

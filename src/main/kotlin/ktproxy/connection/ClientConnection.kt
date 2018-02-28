@@ -55,7 +55,7 @@ class ClientConnection(
                 return when {
                     plain.contentEquals("fin".toByteArray()) -> null
 
-                    plain.contentEquals("rst".toByteArray()) -> throw ConnectionException("connection reset by peer")
+//                    plain.contentEquals("rst".toByteArray()) -> throw ConnectionException("connection reset by peer")
 
                     else -> plain
                 }
@@ -80,7 +80,7 @@ class ClientConnection(
         decryptCipher = Cipher(CipherModes.AES_256_CTR, key, decryptIV)
     }
 
-    private fun close() {
+    fun close() {
         shutdownStatus = 3
         proxySocketChannel.close()
     }
@@ -90,7 +90,6 @@ class ClientConnection(
             2 -> return
 
             3 -> {
-//                proxySocketChannel.close()
             }
 
             else -> {
@@ -108,18 +107,17 @@ class ClientConnection(
             1 -> return
 
             3 -> {
-//                proxySocketChannel.close()
             }
 
             else -> shutdownStatus += 1
         }
     }
 
+    /*@Deprecated("will delete it")
     suspend fun errorClose() {
         try {
             write("rst".toByteArray())
         } finally {
-            close()
         }
-    }
+    }*/
 }

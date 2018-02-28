@@ -60,23 +60,19 @@ class Server(
         val targetAddress = try {
             connection.read()
         } catch (e: FrameException) {
-            connection.errorClose()
+            connection.close()
             return
         }
 
         if (targetAddress == null) {
-            try {
-                connection.shutdownOutput()
-            } finally {
-                connection.errorClose()
-                return
-            }
+            connection.close()
+            return
         }
 
         val socksInfo = try {
-            Socks.build(targetAddress!!)
+            Socks.build(targetAddress)
         } catch (e: SocksException) {
-            connection.errorClose()
+            connection.close()
             return
         }
 
@@ -84,9 +80,9 @@ class Server(
         try {
             socketChannel.aConnect(InetSocketAddress(InetAddress.getByAddress(socksInfo.addr), socksInfo.port))
         } catch (e: IOException) {
-            e.printStackTrace()
+//            e.printStackTrace()
             socketChannel.close()
-            connection.errorClose()
+            connection.close()
             return
         }
 
@@ -116,14 +112,14 @@ class Server(
                 } catch (e: FrameException) {
 //                    e.printStackTrace()
                     socketChannel.close()
-                    connection.errorClose()
+                    connection.close()
                     canRelease = -1
                     return@async
-                } catch (e: IOException) {
+                } catch (e: ConnectionException) {
 //                    e.printStackTrace()
                     socketChannel.close()
-                    connection.errorClose()
-                    canRelease = -1
+//                    connection.errorClose()
+                    canRelease++
                     return@async
                 }
 
@@ -139,8 +135,8 @@ class Server(
                 } catch (e: IOException) {
 //                    e.printStackTrace()
                     socketChannel.close()
-                    connection.errorClose()
-                    canRelease = -1
+                    connection.shutdownInput()
+                    canRelease++
                     return@async
                 }
             }
@@ -160,8 +156,8 @@ class Server(
                 } catch (e: IOException) {
 //                    e.printStackTrace()
                     socketChannel.close()
-                    connection.errorClose()
-                    canRelease = -1
+                    connection.shutdownOutput()
+                    canRelease++
                     return@async
                 }
 
@@ -175,14 +171,14 @@ class Server(
                 } catch (e: IOException) {
 //                    e.printStackTrace()
                     socketChannel.close()
-                    connection.errorClose()
+                    connection.close()
                     canRelease = -1
                     return@async
                 } catch (e: ConnectionException) {
 //                    e.printStackTrace()
                     socketChannel.close()
-                    connection.errorClose()
-                    canRelease = -1
+//                    connection.errorClose()
+                    canRelease++
                     return@async
                 }
             }

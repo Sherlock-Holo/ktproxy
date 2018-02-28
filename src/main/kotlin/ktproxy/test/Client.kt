@@ -87,7 +87,7 @@ class Client(
 
                     -1 -> break@loop
 
-                    else -> delay(100)
+                    0, 1 -> delay(100)
                 }
             }
         }
@@ -97,7 +97,7 @@ class Client(
         try {
             connection.write(socks.targetAddress)
         } catch (e: IOException) {
-            connection.errorClose()
+            connection.close()
             socketChannel.close()
             canRelease = -1
             return
@@ -117,8 +117,8 @@ class Client(
 //                    println("read not 0")
                 } catch (e: IOException) {
                     socketChannel.close()
-                    connection.errorClose()
-                    canRelease = -1
+                    connection.shutdownOutput()
+                    canRelease++
                     return@async
                 }
 
@@ -132,13 +132,13 @@ class Client(
 
                 } catch (e: IOException) {
                     socketChannel.close()
-                    connection.errorClose()
+                    connection.close()
                     canRelease = -1
                     return@async
                 } catch (e: ConnectionException) {
                     socketChannel.close()
-                    connection.errorClose()
-                    canRelease = -1
+//                    connection.close()
+                    canRelease++
                     return@async
                 }
             }
@@ -152,12 +152,11 @@ class Client(
 
                 } catch (e: ConnectionException) {
                     socketChannel.close()
-                    connection.errorClose()
-                    canRelease = -1
+                    canRelease++
                     return@async
                 } catch (e: FrameException) {
                     socketChannel.close()
-                    connection.errorClose()
+                    connection.close()
                     canRelease = -1
                     return@async
                 }
@@ -173,8 +172,8 @@ class Client(
                     socketChannel.aWrite(ByteBuffer.wrap(data))
                 } catch (e: IOException) {
                     socketChannel.close()
-                    connection.errorClose()
-                    canRelease = -1
+                    connection.shutdownInput()
+                    canRelease++
                     return@async
                 }
             }
