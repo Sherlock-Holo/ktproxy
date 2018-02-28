@@ -24,20 +24,12 @@ class Server(
         password: String
 ) {
     private val key = Cipher.password2key(password)
-//    private val proxySocketChannel = AsynchronousServerSocketChannel.open()
 
     private val pool = ServerPool(listenAddr, listenPort, key)
-
-    /*init {
-        if (listenAddr == null) proxySocketChannel.bind(InetSocketAddress(listenPort))
-        else proxySocketChannel.bind(InetSocketAddress(listenAddr, listenPort))
-    }*/
 
     suspend fun start() {
         pool.init()
         while (true) {
-//            val socketChannel = proxySocketChannel.aAccept()
-
             val connection = pool.getConn()
 
             async {
@@ -47,16 +39,6 @@ class Server(
     }
 
     private suspend fun handle(connection: ServerConnection) {
-        /*try {
-            connection.init()
-        } catch (e: IOException) {
-            connection.close()
-            return
-        } catch (e: FrameException) {
-            connection.close()
-            return
-        }*/
-
         val targetAddress = try {
             connection.read()
         } catch (e: FrameException) {
@@ -80,7 +62,6 @@ class Server(
         try {
             socketChannel.aConnect(InetSocketAddress(InetAddress.getByAddress(socksInfo.addr), socksInfo.port))
         } catch (e: IOException) {
-//            e.printStackTrace()
             socketChannel.close()
             connection.close()
             return
@@ -110,15 +91,12 @@ class Server(
                 val data = try {
                     connection.read()
                 } catch (e: FrameException) {
-//                    e.printStackTrace()
                     socketChannel.close()
                     connection.close()
                     canRelease = -1
                     return@async
                 } catch (e: ConnectionException) {
-//                    e.printStackTrace()
                     socketChannel.close()
-//                    connection.errorClose()
                     canRelease++
                     return@async
                 }
@@ -133,7 +111,6 @@ class Server(
                 try {
                     socketChannel.aWrite(ByteBuffer.wrap(data))
                 } catch (e: IOException) {
-//                    e.printStackTrace()
                     socketChannel.close()
                     connection.shutdownInput()
                     canRelease++
@@ -154,7 +131,6 @@ class Server(
                         return@async
                     }
                 } catch (e: IOException) {
-//                    e.printStackTrace()
                     socketChannel.close()
                     connection.shutdownOutput()
                     canRelease++
@@ -169,15 +145,12 @@ class Server(
                 try {
                     connection.write(data)
                 } catch (e: IOException) {
-//                    e.printStackTrace()
                     socketChannel.close()
                     connection.close()
                     canRelease = -1
                     return@async
                 } catch (e: ConnectionException) {
-//                    e.printStackTrace()
                     socketChannel.close()
-//                    connection.errorClose()
                     canRelease++
                     return@async
                 }

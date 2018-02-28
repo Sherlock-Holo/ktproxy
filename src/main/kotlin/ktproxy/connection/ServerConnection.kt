@@ -51,8 +51,6 @@ class ServerConnection(
                 return when {
                     plain.contentEquals("fin".toByteArray()) -> null
 
-//                    plain.contentEquals("rst".toByteArray()) -> throw ConnectionException("connection reset by peer")
-
                     else -> plain
                 }
 
@@ -83,7 +81,6 @@ class ServerConnection(
             2 -> return
 
             3 -> {
-//                proxySocketChannel.close()
             }
 
             else -> {
@@ -101,7 +98,6 @@ class ServerConnection(
             1 -> return
 
             3 -> {
-//                proxySocketChannel.close()
             }
 
             else -> {
@@ -109,12 +105,4 @@ class ServerConnection(
             }
         }
     }
-
-    /*@Deprecated("will delete it")
-    suspend fun errorClose() {
-        try {
-            write("rst".toByteArray())
-        } finally {
-        }
-    }*/
 }

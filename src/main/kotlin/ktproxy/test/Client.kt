@@ -49,22 +49,6 @@ class Client(
             return
         }
 
-        /*val connection = ClientConnection(proxyAddr, proxyPort, key)
-        try {
-            connection.init()
-        } catch (e: IOException) {
-            socketChannel.close()
-            connection.close()
-            e.printStackTrace()
-            return
-        } catch (e: FrameException) {
-            socketChannel.close()
-            connection.close()
-            e.printStackTrace()
-            return
-        }*/
-
-
         val connection = try {
             pool.getConn()
         } catch (e: IOException) {
@@ -114,7 +98,6 @@ class Client(
                         canRelease++
                         return@async
                     }
-//                    println("read not 0")
                 } catch (e: IOException) {
                     socketChannel.close()
                     connection.shutdownOutput()
@@ -137,7 +120,6 @@ class Client(
                     return@async
                 } catch (e: ConnectionException) {
                     socketChannel.close()
-//                    connection.close()
                     canRelease++
                     return@async
                 }

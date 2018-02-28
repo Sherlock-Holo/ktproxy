@@ -55,8 +55,6 @@ class ClientConnection(
                 return when {
                     plain.contentEquals("fin".toByteArray()) -> null
 
-//                    plain.contentEquals("rst".toByteArray()) -> throw ConnectionException("connection reset by peer")
-
                     else -> plain
                 }
 
@@ -112,12 +110,4 @@ class ClientConnection(
             else -> shutdownStatus += 1
         }
     }
-
-    /*@Deprecated("will delete it")
-    suspend fun errorClose() {
-        try {
-            write("rst".toByteArray())
-        } finally {
-        }
-    }*/
 }
