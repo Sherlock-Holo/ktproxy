@@ -26,7 +26,6 @@ class ClientConnection(
 
     /*shutdownInput is 1, shutdownOutput is 2, close is 3*/
     var shutdownStatus = 0
-        private set
 
     @Throws(ConnectionException::class, IOException::class)
     override suspend fun write(data: ByteArray) {

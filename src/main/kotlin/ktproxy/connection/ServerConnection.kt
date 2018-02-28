@@ -22,7 +22,6 @@ class ServerConnection(
 
     /*shutdownInput is 1, shutdownOutput is 2, close is 3*/
     var shutdownStatus = 0
-        private set
 
     @Throws(IOException::class, ConnectionException::class)
     override suspend fun write(data: ByteArray) {
