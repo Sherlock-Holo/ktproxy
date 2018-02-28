@@ -66,15 +66,17 @@ class ClientPool(private val proxyAddr: String, private val proxyPort: Int, priv
         }
     }
 
-    suspend fun startCheckReuse(port: Int) {
-        async {
-            val serverSocketChannel = AsynchronousServerSocketChannel.open()
-            serverSocketChannel.bind(InetSocketAddress("127.0.0.1", port))
-            while (true) {
-                val telnet = serverSocketChannel.aAccept()
-                async {
-                    telnet.aWrite(ByteBuffer.wrap("reuse: $reuseTime\n".toByteArray()))
-                    telnet.close()
+    suspend fun startCheckReuse(port: Int?) {
+        if (port != null) {
+            async {
+                val serverSocketChannel = AsynchronousServerSocketChannel.open()
+                serverSocketChannel.bind(InetSocketAddress("127.0.0.1", port))
+                while (true) {
+                    val telnet = serverSocketChannel.aAccept()
+                    async {
+                        telnet.aWrite(ByteBuffer.wrap("reuse: $reuseTime\n".toByteArray()))
+                        telnet.close()
+                    }
                 }
             }
         }

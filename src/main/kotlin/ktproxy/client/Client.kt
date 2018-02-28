@@ -22,7 +22,8 @@ class Client(
         proxyAddr: String,
         proxyPort: Int,
         password: String,
-        poolCapacity: Int
+        poolCapacity: Int,
+        private val telnet: Int?
 ) {
     private val key = Cipher.password2key(password)
     private val listenSocketChannel = AsynchronousServerSocketChannel.open()
@@ -34,7 +35,8 @@ class Client(
     }
 
     suspend fun start() {
-//        pool.startCheckReuse(4656)
+        pool.startCheckReuse(telnet)
+
         while (true) {
             val socketChannel = listenSocketChannel.aAccept()
             async { handle(socketChannel) }

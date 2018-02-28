@@ -18,6 +18,21 @@ fun main(args: Array<String>) = runBlocking {
 
     val poolCapacity = (config.getMap("local")["poolSize"] as Long? ?: 50).toInt()
 
-    val client = Client(config.listenAddr, config.listenPort, config.proxyAddr, config.proxyPort, config.password, poolCapacity)
+    val telnetService = config.getMap("reuseCheck")
+    val telnet = telnetService["service"] as Boolean
+    val telnetPort =
+            if (telnet) (telnetService["port"] as Long).toInt()
+            else null
+
+    val client = Client(
+            config.listenAddr,
+            config.listenPort,
+            config.proxyAddr,
+            config.proxyPort,
+            config.password,
+            poolCapacity,
+            telnetPort
+    )
+
     client.start()
 }
