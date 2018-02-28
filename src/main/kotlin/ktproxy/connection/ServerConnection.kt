@@ -105,4 +105,14 @@ class ServerConnection(
             }
         }
     }
+
+    suspend fun destroy(): Boolean {
+        val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)
+        val plain = decryptCipher.decrypt(frame.content)
+        return when {
+            plain.contentEquals("destroy".toByteArray()) -> true
+
+            else -> false
+        }
+    }
 }

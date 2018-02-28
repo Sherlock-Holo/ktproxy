@@ -110,4 +110,15 @@ class ClientConnection(
             else -> shutdownStatus += 1
         }
     }
+
+    suspend fun destroy(destroyIt: Boolean) {
+        val cipher = if (destroyIt) {
+            encryptCipher.encrypt("destroy".toByteArray())
+        } else {
+            encryptCipher.encrypt("save".toByteArray())
+        }
+
+        val frame = Frame(FrameType.CLIENT, FrameContentType.BINARY, cipher)
+        proxySocketChannel.aWrite(ByteBuffer.wrap(frame.frameByteArray))
+    }
 }

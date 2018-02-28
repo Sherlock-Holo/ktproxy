@@ -4,6 +4,7 @@ import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.LinkedListChannel
 import kotlinx.coroutines.experimental.nio.aAccept
 import kotlinx.coroutines.experimental.nio.aWrite
+import java.io.IOException
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousServerSocketChannel
@@ -12,6 +13,9 @@ class ServerPool(private val proxyAddr: String?, private val proxyPort: Int, pri
     private val pool = LinkedListChannel<ServerConnection>()
 
     private var reuseTime = 0
+
+    var poolSize = 0
+        private set
 
     suspend fun init() {
         val serverSocketChannel = AsynchronousServerSocketChannel.open()
@@ -38,9 +42,17 @@ class ServerPool(private val proxyAddr: String?, private val proxyPort: Int, pri
         return connection
     }
 
-    fun putConn(connection: ServerConnection): Boolean {
-        reuseTime++
-        return pool.offer(connection)
+    suspend fun putConn(connection: ServerConnection) {
+        async {
+            try {
+                if (!connection.destroy()) {
+                    reuseTime++
+                    pool.offer(connection)
+                } else connection.close()
+            } catch (e: IOException) {
+                connection.close()
+            }
+        }
     }
 
     suspend fun startCheckReuse(port: Int) {

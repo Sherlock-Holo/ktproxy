@@ -16,6 +16,9 @@ class ClientPool(private val proxyAddr: String, private val proxyPort: Int, priv
 
     private var reuseTime = 0
 
+    var poolSize = 0
+        private set
+
     init {
         lock.offer(2018)
     }
@@ -28,6 +31,7 @@ class ClientPool(private val proxyAddr: String, private val proxyPort: Int, priv
                 val connection = pool.removeAt(0)
                 connection.shutdownStatus = 0
                 reuseTime++
+                poolSize--
                 return connection
             }
         } finally {
@@ -39,7 +43,28 @@ class ClientPool(private val proxyAddr: String, private val proxyPort: Int, priv
         return connection
     }
 
-    fun putConn(connection: ClientConnection) = pool.add(connection)
+    suspend fun putConn(connection: ClientConnection) {
+        async {
+            if (poolSize <= 30) {
+                try {
+                    connection.destroy(false)
+                } catch (e: IOException) {
+                    connection.close()
+                    return@async
+                }
+                reuseTime++
+                poolSize++
+                pool.add(connection)
+
+            } else {
+                try {
+                    connection.destroy(true)
+                } finally {
+                    connection.close()
+                }
+            }
+        }
+    }
 
     suspend fun startCheckReuse(port: Int) {
         async {
