@@ -10,7 +10,7 @@ import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousServerSocketChannel
 
-class ClientPool(private val proxyAddr: String, private val proxyPort: Int, private val key: ByteArray) {
+class ClientPool(private val proxyAddr: String, private val proxyPort: Int, private val key: ByteArray, val poolCapacity: Int) {
     private val lock = LinkedListChannel<Int>()
     private val pool = ArrayList<ClientConnection>()
 
@@ -45,7 +45,7 @@ class ClientPool(private val proxyAddr: String, private val proxyPort: Int, priv
 
     suspend fun putConn(connection: ClientConnection) {
         async {
-            if (poolSize <= 30) {
+            if (poolSize <= poolCapacity) {
                 try {
                     connection.destroy(false)
                 } catch (e: IOException) {

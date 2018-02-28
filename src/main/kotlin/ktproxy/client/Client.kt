@@ -21,12 +21,13 @@ class Client(
         listenPort: Int,
         proxyAddr: String,
         proxyPort: Int,
-        password: String
+        password: String,
+        poolCapacity: Int
 ) {
     private val key = Cipher.password2key(password)
     private val listenSocketChannel = AsynchronousServerSocketChannel.open()
 
-    private val pool = ClientPool(proxyAddr, proxyPort, key)
+    private val pool = ClientPool(proxyAddr, proxyPort, key, poolCapacity)
 
     init {
         listenSocketChannel.bind(InetSocketAddress(listenAddr, listenPort))

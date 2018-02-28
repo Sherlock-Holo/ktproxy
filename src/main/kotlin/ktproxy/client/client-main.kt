@@ -1,7 +1,7 @@
 package ktproxy.client
 
 import kotlinx.coroutines.experimental.runBlocking
-import ktproxy.config.buildConfig
+import ktproxy.config.Config
 import java.io.File
 
 fun main(args: Array<String>) = runBlocking {
@@ -14,8 +14,10 @@ fun main(args: Array<String>) = runBlocking {
         println("config file not exist")
         System.exit(1)
     }
-    val config = buildConfig(configFile)
+    val config = Config(configFile)
 
-    val client = Client(config.listenAddr, config.listenPort, config.proxyAddr, config.proxyPort, config.password)
+    val poolCapacity = (config.getMap("local")["poolSize"] as Long? ?: 50).toInt()
+
+    val client = Client(config.listenAddr, config.listenPort, config.proxyAddr, config.proxyPort, config.password, poolCapacity)
     client.start()
 }

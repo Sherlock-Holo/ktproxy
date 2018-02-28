@@ -1,7 +1,7 @@
 package ktproxy.server
 
 import kotlinx.coroutines.experimental.runBlocking
-import ktproxy.config.buildConfig
+import ktproxy.config.Config
 import java.io.File
 
 fun main(args: Array<String>) = runBlocking {
@@ -14,7 +14,7 @@ fun main(args: Array<String>) = runBlocking {
         println("config file not exist")
         System.exit(1)
     }
-    val config = buildConfig(configFile)
+    val config = Config(configFile)
 
     val server = Server(config.proxyAddr, config.proxyPort, config.password)
     server.start()

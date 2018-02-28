@@ -3,22 +3,22 @@ package ktproxy.config
 import com.moandjiezana.toml.Toml
 import java.io.File
 
-data class ProxyConfig(
-        val listenAddr: String,
-        val listenPort: Int,
-        val proxyAddr: String,
-        val proxyPort: Int,
-        val password: String
-)
+class Config(file: File) {
+    private val toml = Toml().read(file)
 
-fun buildConfig(file: File): ProxyConfig {
-    val toml = Toml().read(file)
+    val listenAddr: String
+    val listenPort: Int
+    val proxyAddr: String
+    val proxyPort: Int
+    val password: String
 
-    return ProxyConfig(
-            toml.getString("local.listenAddr"),
-            toml.getLong("local.listenPort").toInt(),
-            toml.getString("proxy.proxyAddr"),
-            toml.getLong("proxy.proxyPort").toInt(),
-            toml.getString("password")
-    )
+    init {
+        listenAddr = toml.getString("local.listenAddr")
+        listenPort = toml.getLong("local.listenPort").toInt()
+        proxyAddr = toml.getString("proxy.proxyAddr")
+        proxyPort = toml.getLong("proxy.proxyPort").toInt()
+        password = toml.getString("gernal.password")
+    }
+
+    fun getMap(title: String) = toml.getTable(title).toMap()
 }
