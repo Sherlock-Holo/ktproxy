@@ -6,12 +6,15 @@ import kotlinx.coroutines.experimental.nio.aAccept
 import java.net.InetSocketAddress
 import java.nio.channels.AsynchronousServerSocketChannel
 
-class ServerPool(private val proxyAddr: String, private val proxyPort: Int, private val key: ByteArray) {
+class ServerPool(private val proxyAddr: String?, private val proxyPort: Int, private val key: ByteArray) {
     private val pool = LinkedListChannel<ServerConnection>()
 
-    private suspend fun init() {
+    suspend fun init() {
         val serverSocketChannel = AsynchronousServerSocketChannel.open()
-        serverSocketChannel.bind(InetSocketAddress(proxyAddr, proxyPort))
+
+        if (proxyAddr != null) serverSocketChannel.bind(InetSocketAddress(proxyAddr, proxyPort))
+        else serverSocketChannel.bind(InetSocketAddress(proxyPort))
+
         async {
             while (true) {
                 val socketChannel = serverSocketChannel.aAccept()

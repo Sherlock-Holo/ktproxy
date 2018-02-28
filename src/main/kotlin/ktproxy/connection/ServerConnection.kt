@@ -73,7 +73,10 @@ class ServerConnection(
         decryptCipher = Cipher(CipherModes.AES_256_CTR, key, decryptIV)
     }
 
-    fun close() = proxySocketChannel.close()
+    private fun close() {
+        shutdownStatus = 3
+        proxySocketChannel.close()
+    }
 
     suspend fun shutdownOutput() {
         when (shutdownStatus) {

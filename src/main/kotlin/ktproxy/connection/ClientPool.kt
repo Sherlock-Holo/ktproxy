@@ -1,6 +1,8 @@
 package ktproxy.connection
 
 import kotlinx.coroutines.experimental.channels.LinkedListChannel
+import ktproxy.frame.FrameException
+import java.io.IOException
 
 class ClientPool(private val proxyAddr: String, private val proxyPort: Int, private val key: ByteArray) {
     private val lock = LinkedListChannel<Int>()
@@ -10,6 +12,7 @@ class ClientPool(private val proxyAddr: String, private val proxyPort: Int, priv
         lock.offer(2018)
     }
 
+    @Throws(IOException::class, FrameException::class)
     suspend fun getConn(): ClientConnection {
         lock.receive()
         try {

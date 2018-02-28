@@ -80,7 +80,7 @@ class ClientConnection(
         decryptCipher = Cipher(CipherModes.AES_256_CTR, key, decryptIV)
     }
 
-    fun close() {
+    private fun close() {
         shutdownStatus = 3
         proxySocketChannel.close()
     }
@@ -90,7 +90,7 @@ class ClientConnection(
             2 -> return
 
             3 -> {
-                proxySocketChannel.close()
+//                proxySocketChannel.close()
             }
 
             else -> {
@@ -108,7 +108,7 @@ class ClientConnection(
             1 -> return
 
             3 -> {
-                proxySocketChannel.close()
+//                proxySocketChannel.close()
             }
 
             else -> shutdownStatus += 1
