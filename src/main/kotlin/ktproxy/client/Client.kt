@@ -67,14 +67,14 @@ class Client(
         async {
             loop@ while (true) {
                 when (canRelease) {
-                    2 -> {
-                        pool.putConn(connection)
-                        break@loop
-                    }
-
                     -1 -> break@loop
 
                     0, 1 -> delay(100)
+
+                    else -> {
+                        pool.putConn(connection)
+                        break@loop
+                    }
                 }
             }
         }
@@ -122,7 +122,7 @@ class Client(
                     canRelease = -1
                     return@async
                 } catch (e: ConnectionException) {
-                    socketChannel.close()
+                    socketChannel.shutdownInput()
                     canRelease++
                     return@async
                 }
@@ -136,7 +136,7 @@ class Client(
                     connection.read()
 
                 } catch (e: ConnectionException) {
-                    socketChannel.close()
+                    socketChannel.shutdownOutput()
                     canRelease++
                     return@async
                 } catch (e: FrameException) {

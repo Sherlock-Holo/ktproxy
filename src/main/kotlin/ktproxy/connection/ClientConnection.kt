@@ -10,6 +10,7 @@ import resocks.encrypt.Cipher
 import resocks.encrypt.CipherModes
 import java.io.IOException
 import java.net.InetSocketAddress
+import java.net.StandardSocketOptions
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousSocketChannel
 
@@ -67,6 +68,9 @@ class ClientConnection(
     suspend fun init() {
         proxySocketChannel = AsynchronousSocketChannel.open()
         proxySocketChannel.aConnect(InetSocketAddress(addr, port))
+
+        proxySocketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true)
+        proxySocketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true)
 
         encryptCipher = Cipher(CipherModes.AES_256_CTR, key)
         val iv = encryptCipher.IVorNonce!!

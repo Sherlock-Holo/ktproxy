@@ -8,6 +8,7 @@ import ktproxy.frame.FrameType
 import resocks.encrypt.Cipher
 import resocks.encrypt.CipherModes
 import java.io.IOException
+import java.net.StandardSocketOptions
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousSocketChannel
 
@@ -15,6 +16,11 @@ class ServerConnection(
         private val proxySocketChannel: AsynchronousSocketChannel,
         private val key: ByteArray
 ) : Connection {
+    init {
+        proxySocketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true)
+        proxySocketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true)
+    }
+
     private val readBuffer = ByteBuffer.allocate(8192)
 
     private lateinit var encryptCipher: Cipher

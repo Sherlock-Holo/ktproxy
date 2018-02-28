@@ -3,7 +3,6 @@ package ktproxy.socks
 import kotlinx.coroutines.experimental.nio.aRead
 import kotlinx.coroutines.experimental.nio.aWrite
 import java.io.IOException
-import java.net.Inet6Address
 import java.net.InetAddress
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousSocketChannel
@@ -50,12 +49,6 @@ class Socks(private val socketChannel: AsynchronousSocketChannel, val buffer: By
         buffer.clear()
 
         if (version != 5) throw SocksException("socks version is $version, not 5")
-
-        /*buffer.limit(1)
-        socketChannel.aRead(buffer)
-        buffer.flip()
-        val nmethods = buffer.get().toInt() and 0xff
-        buffer.clear()*/
 
         val methods = ByteArray(nmethods)
         buffer.limit(nmethods)
@@ -201,10 +194,10 @@ class Socks(private val socketChannel: AsynchronousSocketChannel, val buffer: By
             else -> throw SocksException("unexpected atyp")
         }
 
-        buffer.put(byteArrayOf(5, 0, 0, 4))
-        val replyAddress = Inet6Address.getByName("::1").address
+        buffer.put(byteArrayOf(5, 0, 0, 1))
+        val replyAddress = InetAddress.getByName("127.0.0.1").address
         buffer.put(replyAddress)
-        buffer.putShort(0)
+        buffer.putShort(1080)
         buffer.flip()
         try {
             socketChannel.aWrite(buffer)
