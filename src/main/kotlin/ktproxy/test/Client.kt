@@ -32,7 +32,6 @@ class Client(
     suspend fun start() {
         while (true) {
             val socketChannel = listenSocketChannel.aAccept()
-//            println("accept new connection")
             async { handle(socketChannel) }
         }
     }
@@ -42,11 +41,9 @@ class Client(
         val socks = Socks(socketChannel, buffer)
         socks.init()
         if (!socks.isSuccessful) {
-//            println("socks handshake failed")
             socketChannel.close()
             return
         }
-//        println("socks handshake successful")
 
         val connection = ClientConnection(proxyAddr, proxyPort, key)
         try {
@@ -62,9 +59,6 @@ class Client(
             e.printStackTrace()
             return
         }
-//        println("connection init successful")
-
-//        connection.init()
 
         try {
             connection.write(socks.targetAddress)
@@ -73,7 +67,6 @@ class Client(
             socketChannel.close()
             return
         }
-//        println("sand targetaddress successful")
 
         // browser -> proxy
         async {
@@ -81,16 +74,14 @@ class Client(
             while (true) {
                 try {
                     if (socketChannel.aRead(buffer) <= 0) {
-                        println("read 0")
-                        socketChannel.close()
-                        connection.close()
+                        socketChannel.shutdownInput()
+                        connection.shutdownOutput()
                         return@async
                     }
-                    println("read not 0")
+//                    println("read not 0")
                 } catch (e: IOException) {
-//                    e.printStackTrace()
                     socketChannel.close()
-                    connection.close()
+                    connection.errorClose()
                     return@async
                 }
 
@@ -103,12 +94,10 @@ class Client(
                     connection.write(data)
 
                 } catch (e: IOException) {
-//                    e.printStackTrace()
                     socketChannel.close()
                     connection.close()
                     return@async
                 } catch (e: ConnectionException) {
-//                    e.printStackTrace()
                     socketChannel.close()
                     connection.close()
                     return@async
@@ -121,28 +110,28 @@ class Client(
             while (true) {
                 val data = try {
                     connection.read()
-                    /*val data = connection.read()
-                    println("read data")
-                    data*/
 
                 } catch (e: ConnectionException) {
-//                    e.printStackTrace()
                     socketChannel.close()
                     connection.close()
                     return@async
                 } catch (e: FrameException) {
-//                    e.printStackTrace()
                     socketChannel.close()
                     connection.close()
+                    return@async
+                }
+
+                if (data == null) {
+                    socketChannel.shutdownOutput()
+                    connection.shutdownInput()
                     return@async
                 }
 
                 try {
                     socketChannel.aWrite(ByteBuffer.wrap(data))
                 } catch (e: IOException) {
-//                    e.printStackTrace()
                     socketChannel.close()
-                    connection.close()
+                    connection.errorClose()
                     return@async
                 }
             }

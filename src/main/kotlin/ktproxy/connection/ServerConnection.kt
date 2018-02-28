@@ -17,32 +17,49 @@ class ServerConnection(
 ) : Connection {
     private val readBuffer = ByteBuffer.allocate(8192)
 
-    private var isClosed = false
-
     private lateinit var encryptCipher: Cipher
     private lateinit var decryptCipher: Cipher
 
+    /*shutdownInput is 1, shutdownOutput is 2, close is 3*/
+    var shutdownStatus = 0
+        private set
+
     @Throws(IOException::class, ConnectionException::class)
     override suspend fun write(data: ByteArray) {
-        if (isClosed) throw ConnectionException("connection is closed")
+        when (shutdownStatus) {
+            2 -> throw ConnectionException("connection can't write again")
 
-        val cipher = encryptCipher.encrypt(data)
-        val frame = Frame(FrameType.SERVER, FrameContentType.BINARY, cipher)
-        proxySocketChannel.aWrite(ByteBuffer.wrap(frame.frameByteArray))
+            3 -> throw ConnectionException("connection is closed")
+
+            else -> {
+                val cipher = encryptCipher.encrypt(data)
+                val frame = Frame(FrameType.SERVER, FrameContentType.BINARY, cipher)
+                proxySocketChannel.aWrite(ByteBuffer.wrap(frame.frameByteArray))
+            }
+        }
     }
 
     @Throws(FrameException::class, ConnectionException::class)
-    override suspend fun read(): ByteArray {
-        if (isClosed) throw ConnectionException("connection is closed")
+    override suspend fun read(): ByteArray? {
+        when (shutdownStatus) {
+            1 -> throw ConnectionException("connection can't read again")
 
-        val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)
-        val plain = decryptCipher.decrypt(frame.content)
-        if (plain.contentEquals("fin".toByteArray())) {
-            isClosed = true
-            throw ConnectionException("connection is closed")
+            3 -> throw ConnectionException("connection is closed")
+
+            else -> {
+                val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)
+                val plain = decryptCipher.decrypt(frame.content)
+                return when {
+                    plain.contentEquals("fin".toByteArray()) -> null
+
+                    plain.contentEquals("rst".toByteArray()) -> throw ConnectionException("connection reset by peer")
+
+                    else -> plain
+                }
+
+            }
         }
 
-        return plain
     }
 
     @Throws(IOException::class, FrameException::class)
@@ -57,15 +74,45 @@ class ServerConnection(
         decryptCipher = Cipher(CipherModes.AES_256_CTR, key, decryptIV)
     }
 
-    suspend fun close() {
-        if (!isClosed) {
-            try {
-                write("fin".toByteArray())
-            } finally {
-                proxySocketChannel.close()
-                isClosed = true
+    fun close() = proxySocketChannel.close()
+
+    suspend fun shutdownOutput() {
+        when (shutdownStatus) {
+            2 -> return
+
+            3 -> {
+//                proxySocketChannel.close()
             }
 
-        } else return
+            else -> {
+                try {
+                    write("fin".toByteArray())
+                } finally {
+                    shutdownStatus += 2
+                }
+            }
+        }
+    }
+
+    fun shutdownInput() {
+        when (shutdownStatus) {
+            1 -> return
+
+            3 -> {
+//                proxySocketChannel.close()
+            }
+
+            else -> {
+                shutdownStatus += 1
+            }
+        }
+    }
+
+    suspend fun errorClose() {
+        try {
+            write("rst".toByteArray())
+        } finally {
+            close()
+        }
     }
 }
