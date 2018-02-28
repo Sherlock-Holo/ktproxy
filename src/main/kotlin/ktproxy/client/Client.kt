@@ -34,7 +34,7 @@ class Client(
     }
 
     suspend fun start() {
-        pool.startCheckReuse(4656)
+//        pool.startCheckReuse(4656)
         while (true) {
             val socketChannel = listenSocketChannel.aAccept()
             async { handle(socketChannel) }
