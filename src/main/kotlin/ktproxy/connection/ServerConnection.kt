@@ -26,12 +26,12 @@ class ServerConnection(
     private lateinit var encryptCipher: Cipher
     private lateinit var decryptCipher: Cipher
 
-    /*shutdownInput is 1, shutdownOutput is 2, close is 3*/
-    var shutdownStatus = 0
+    private var input = true
+    private var output = true
 
     @Throws(IOException::class, ConnectionException::class)
     override suspend fun write(data: ByteArray): Int {
-        return when (shutdownStatus) {
+        /*return when (shutdownStatus) {
             2 -> -1
 
             3 -> throw ConnectionException("connection is closed")
@@ -41,25 +41,43 @@ class ServerConnection(
                 val frame = Frame(FrameType.SERVER, FrameContentType.BINARY, cipher)
                 proxySocketChannel.aWrite(ByteBuffer.wrap(frame.frameByteArray))
             }
+        }*/
+
+        return if (!output) -1
+        else {
+            val cipher = encryptCipher.encrypt(data)
+            val frame = Frame(FrameType.SERVER, FrameContentType.BINARY, cipher)
+            proxySocketChannel.aWrite(ByteBuffer.wrap(frame.frameByteArray))
         }
     }
 
     @Throws(FrameException::class, ConnectionException::class)
     override suspend fun read(): ByteArray? {
-        when (shutdownStatus) {
+        /*when (shutdownStatus) {
             1 -> throw ConnectionException("connection can't read again")
 
             3 -> throw ConnectionException("connection is closed")
 
             else -> {
                 val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)
-                val plain = decryptCipher.decrypt(frame.content)
-                return when {
-                    plain.contentEquals("fin".toByteArray()) -> null
 
-                    else -> plain
+                return when (frame.contentType) {
+                    FrameContentType.TEXT -> null
+
+                    else -> decryptCipher.decrypt(frame.content)
                 }
 
+            }
+        }*/
+
+        if (!input) throw ConnectionException("connection can't read again")
+        else {
+            val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)
+
+            return when (frame.contentType) {
+                FrameContentType.TEXT -> null
+
+                else -> decryptCipher.decrypt(frame.content)
             }
         }
 
@@ -77,41 +95,32 @@ class ServerConnection(
         decryptCipher = Cipher(CipherModes.AES_256_CTR, key, decryptIV)
     }
 
+    fun reset() {
+        input = true
+        output = true
+    }
+
     fun close() {
-        shutdownStatus = 3
+        input = false
+        output = false
         proxySocketChannel.close()
     }
 
     suspend fun shutdownOutput() {
-        when (shutdownStatus) {
-            2 -> return
-
-            3 -> {
-            }
-
-            else -> {
-                try {
-                    write("fin".toByteArray())
-                } finally {
-                    shutdownStatus += 2
-                }
-            }
+        try {
+            val cipher = encryptCipher.encrypt("fin".toByteArray())
+            val frame = Frame(FrameType.SERVER, FrameContentType.TEXT, cipher)
+            proxySocketChannel.aWrite(ByteBuffer.wrap(frame.frameByteArray))
+        } finally {
+            output = false
         }
     }
 
     fun shutdownInput() {
-        when (shutdownStatus) {
-            1 -> return
-
-            3 -> {
-            }
-
-            else -> {
-                shutdownStatus += 1
-            }
-        }
+        input = false
     }
 
+    @Deprecated("will not use destroy")
     suspend fun destroy(): Boolean {
         val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)
         val plain = decryptCipher.decrypt(frame.content)
