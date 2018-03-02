@@ -63,6 +63,8 @@ class Server(
 
     private suspend fun handle(connection: ServerConnection) {
         while (true) {
+            connection.shutdownStatus = 0
+
             val targetAddress = try {
                 connection.read()
             } catch (e: FrameException) {

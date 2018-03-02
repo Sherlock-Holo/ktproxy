@@ -49,6 +49,7 @@ class Client(
         socks.init()
         if (!socks.isSuccessful) {
             socketChannel.close()
+            println("socks init failed")
             return
         }
 

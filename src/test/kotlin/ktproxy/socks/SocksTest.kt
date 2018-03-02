@@ -9,7 +9,7 @@ import java.nio.channels.AsynchronousServerSocketChannel
 
 fun main(args: Array<String>) = runBlocking {
     val serverSocketChannel = AsynchronousServerSocketChannel.open()
-    serverSocketChannel.bind(InetSocketAddress("127.0.0.2", 4567))
+    serverSocketChannel.bind(InetSocketAddress("127.0.0.2", 4566))
     val client = serverSocketChannel.aAccept()
     val buffer = ByteBuffer.allocate(8192)
     val socks = Socks(client, buffer)

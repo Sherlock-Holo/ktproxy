@@ -157,13 +157,17 @@ class Socks(private val socketChannel: AsynchronousSocketChannel, val buffer: By
 
             3 -> {
                 buffer.limit(1)
-                socketChannel.aRead(buffer)
+                if (socketChannel.aRead(buffer) <= 0) {
+                    socketChannel.close()
+                    throw SocksException("unexpected stream end")
+                }
+
                 buffer.flip()
                 addrLength = buffer.get().toInt() and 0xff
                 buffer.clear()
 
                 val address = ByteArray(addrLength)
-                buffer.limit(addrLength)
+                buffer.limit(addrLength + 2)
                 while (length < addrLength + 2) {
                     try {
                         val dataRead = socketChannel.aRead(buffer)
@@ -176,7 +180,7 @@ class Socks(private val socketChannel: AsynchronousSocketChannel, val buffer: By
                 buffer.flip()
                 buffer.get(address)
 
-                addr = InetAddress.getByAddress(address)
+                addr = InetAddress.getByName(String(address))
                 port = buffer.short.toInt()
                 buffer.clear()
 
