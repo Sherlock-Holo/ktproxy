@@ -39,7 +39,7 @@ class ServerPool(private val proxyAddr: String?, private val proxyPort: Int, pri
 
     suspend fun getConn(): ServerConnection {
         val connection = pool.receive()
-        connection.shutdownStatus = 0
+        connection.reset()
         return connection
     }
 

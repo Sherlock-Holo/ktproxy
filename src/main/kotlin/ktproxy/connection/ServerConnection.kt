@@ -53,23 +53,6 @@ class ServerConnection(
 
     @Throws(FrameException::class, ConnectionException::class)
     override suspend fun read(): ByteArray? {
-        /*when (shutdownStatus) {
-            1 -> throw ConnectionException("connection can't read again")
-
-            3 -> throw ConnectionException("connection is closed")
-
-            else -> {
-                val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)
-
-                return when (frame.contentType) {
-                    FrameContentType.TEXT -> null
-
-                    else -> decryptCipher.decrypt(frame.content)
-                }
-
-            }
-        }*/
-
         if (!input) throw ConnectionException("connection can't read again")
         else {
             val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)

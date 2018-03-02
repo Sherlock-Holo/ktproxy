@@ -28,20 +28,8 @@ class ClientConnection(
     private var input = true
     private var output = true
 
-    @Throws(ConnectionException::class, IOException::class)
+    @Throws(IOException::class)
     override suspend fun write(data: ByteArray): Int {
-        /*return when (shutdownStatus) {
-            2 -> -1
-
-            3 -> throw ConnectionException("connection is closed")
-
-            else -> {
-                val cipher = encryptCipher.encrypt(data)
-                val frame = Frame(FrameType.CLIENT, FrameContentType.BINARY, cipher)
-                proxySocketChannel.aWrite(ByteBuffer.wrap(frame.frameByteArray))
-            }
-        }*/
-
         return if (!input) -1
         else {
             val cipher = encryptCipher.encrypt(data)
@@ -52,22 +40,6 @@ class ClientConnection(
 
     @Throws(FrameException::class, ConnectionException::class)
     override suspend fun read(): ByteArray? {
-        /*when (shutdownStatus) {
-            1 -> throw ConnectionException("connection can't read again")
-
-            3 -> throw ConnectionException("connection is closed")
-
-            else -> {
-                val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.SERVER)
-
-                return when (frame.contentType) {
-                    FrameContentType.TEXT -> null
-
-                    else -> decryptCipher.decrypt(frame.content)
-                }
-
-            }
-        }*/
         if (!input) throw ConnectionException("connection can't read again")
         else {
             val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.SERVER)
@@ -110,13 +82,18 @@ class ClientConnection(
     }
 
     suspend fun shutdownOutput() {
-        try {
+        /*try {
             val cipher = encryptCipher.encrypt("fin".toByteArray())
             val frame = Frame(FrameType.CLIENT, FrameContentType.TEXT, cipher)
             proxySocketChannel.aWrite(ByteBuffer.wrap(frame.frameByteArray))
         } finally {
             output = false
-        }
+        }*/
+        output = false
+
+        val cipher = encryptCipher.encrypt("fin".toByteArray())
+        val frame = Frame(FrameType.CLIENT, FrameContentType.TEXT, cipher)
+        proxySocketChannel.aWrite(ByteBuffer.wrap(frame.frameByteArray))
     }
 
     fun shutdownInput() {

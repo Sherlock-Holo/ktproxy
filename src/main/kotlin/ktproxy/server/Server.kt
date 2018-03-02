@@ -54,7 +54,7 @@ class Server(
 
     private suspend fun handle(connection: ServerConnection) {
         while (true) {
-            connection.shutdownStatus = 0
+            connection.reset()
 
             val targetAddress = try {
                 connection.read()
@@ -71,6 +71,7 @@ class Server(
             val socksInfo = try {
                 Socks.build(targetAddress)
             } catch (e: SocksException) {
+                e.printStackTrace()
                 connection.close()
                 return
             }
@@ -94,18 +95,20 @@ class Server(
                         socketChannel.close()
                         connection.close()
 
-                        break
+                        return@async
+
+                        // only connection close will throw this exception
                     } catch (e: ConnectionException) {
                         socketChannel.shutdownOutput()
 
-                        return@async true
+                        return@async
                     }
 
                     if (data == null) {
                         socketChannel.shutdownOutput()
                         connection.shutdownInput()
 
-                        return@async true
+                        return@async
                     }
 
                     try {
@@ -114,10 +117,9 @@ class Server(
                         socketChannel.close()
                         connection.shutdownInput()
 
-                        return@async true
+                        return@async
                     }
                 }
-                return@async false
             }
 
             // server -> proxy
@@ -128,15 +130,30 @@ class Server(
                     try {
                         if (socketChannel.aRead(buffer) <= 0) {
                             socketChannel.shutdownInput()
-                            connection.shutdownOutput()
+                            try {
+                                connection.shutdownOutput()
 
-                            return@async true
+                            } catch (e: IOException) {
+                                socketChannel.close()
+                                connection.close()
+
+                            } finally {
+                                return@async
+                            }
                         }
+
                     } catch (e: IOException) {
                         socketChannel.close()
-                        connection.shutdownOutput()
+                        try {
+                            connection.shutdownOutput()
 
-                        return@async true
+                        } catch (e: IOException) {
+                            socketChannel.close()
+                            connection.close()
+
+                        } finally {
+                            return@async
+                        }
                     }
 
                     buffer.flip()
@@ -146,36 +163,29 @@ class Server(
 
                     try {
                         if (connection.write(data) < 0) {
-                            socketChannel.shutdownOutput()
-                            return@async true
+                            try {
+                                connection.shutdownOutput()
+
+                            } catch (e: IOException) {
+                                socketChannel.close()
+                                connection.close()
+
+                            } finally {
+                                return@async
+                            }
                         }
+
                     } catch (e: IOException) {
                         socketChannel.close()
                         connection.close()
 
-                        break
-                    } catch (e: ConnectionException) {
-                        socketChannel.close()
-                        connection.close()
-
-                        break
+                        return@async
                     }
                 }
-                return@async false
             }
 
-            if (replay1.await() && replay2.await()) {
-                try {
-                    if (connection.destroy()) {
-                        connection.close()
-                        break
-                    }
-
-                } catch (e: IOException) {
-                    connection.close()
-                    break
-                }
-            } else break
+            replay1.await()
+            replay2.await()
         }
     }
 }

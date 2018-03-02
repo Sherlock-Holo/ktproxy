@@ -15,6 +15,7 @@ import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousServerSocketChannel
 import java.nio.channels.AsynchronousSocketChannel
+import java.util.logging.Logger
 
 class Client(
         listenAddr: String,
@@ -29,6 +30,8 @@ class Client(
     private val listenSocketChannel = AsynchronousServerSocketChannel.open()
 
     private val pool = ClientPool(proxyAddr, proxyPort, key, poolCapacity)
+
+    private val logger = Logger.getLogger("ktproxy-client logger")
 
     init {
         listenSocketChannel.bind(InetSocketAddress(listenAddr, listenPort))
@@ -49,30 +52,38 @@ class Client(
         socks.init()
         if (!socks.isSuccessful) {
             socketChannel.close()
-            println("socks init failed")
+            logger.warning("socks init failed")
             return
         }
+        logger.info("socks init successful")
 
         val connection = try {
             pool.getConn()
         } catch (e: IOException) {
+            logger.warning("get connection failed: ${e.message}")
             socketChannel.close()
             return
         } catch (e: FrameException) {
+            logger.warning("get connection failed: ${e.message}")
             socketChannel.close()
             return
         }
+        logger.info("get connection successful")
 
 
         var canRelease = 0
         async {
             loop@ while (true) {
                 when (canRelease) {
-                    -1 -> break@loop
+                    -1 -> {
+                        logger.warning("connection error, discard this connection")
+                        break@loop
+                    }
 
                     0, 1 -> delay(100)
 
                     else -> {
+                        logger.fine("reuse this connection")
                         pool.putConn(connection)
                         break@loop
                     }
@@ -85,11 +96,13 @@ class Client(
         try {
             connection.write(socks.targetAddress)
         } catch (e: IOException) {
+            logger.warning("send target address failed: ${e.message}")
             connection.close()
             socketChannel.close()
             canRelease = -1
             return
         }
+        logger.info("send target address successful")
 
         // browser -> proxy
         async {
@@ -97,14 +110,31 @@ class Client(
             while (true) {
                 try {
                     if (socketChannel.aRead(buffer) <= 0) {
+                        logger.fine("socketChannel read FIN")
                         socketChannel.shutdownInput()
-                        connection.shutdownOutput()
+                        try {
+                            connection.shutdownOutput()
+                        } catch (e: IOException) {
+                            logger.warning("connection shutdownOutput failed: ${e.message}")
+                            connection.close()
+                            canRelease = -1
+                            return@async
+                        }
+
                         canRelease++
                         return@async
                     }
                 } catch (e: IOException) {
+                    logger.warning("unexpected socketChannel stream end")
                     socketChannel.close()
-                    connection.shutdownOutput()
+                    try {
+                        connection.shutdownOutput()
+                    } catch (e: IOException) {
+                        logger.warning("connection shutdownOutput failed: ${e.message}")
+                        connection.close()
+                        canRelease = -1
+                        return@async
+                    }
                     canRelease++
                     return@async
                 }
@@ -116,17 +146,14 @@ class Client(
 
                 try {
                     if (connection.write(data) < 0) {
+                        logger.warning("connection can't write")
                         socketChannel.shutdownInput()
                         canRelease++
                         return@async
                     }
 
                 } catch (e: IOException) {
-                    socketChannel.close()
-                    connection.close()
-                    canRelease = -1
-                    return@async
-                } catch (e: ConnectionException) {
+                    logger.warning("connection write data failed")
                     socketChannel.close()
                     connection.close()
                     canRelease = -1
@@ -145,7 +172,9 @@ class Client(
                     socketChannel.shutdownOutput()
                     canRelease++
                     return@async
+
                 } catch (e: FrameException) {
+                    logger.warning("connection read data failed")
                     socketChannel.close()
                     connection.close()
                     canRelease = -1
@@ -162,6 +191,7 @@ class Client(
                 try {
                     socketChannel.aWrite(ByteBuffer.wrap(data))
                 } catch (e: IOException) {
+                    logger.warning("socketChannel IO error")
                     socketChannel.close()
                     connection.shutdownInput()
                     canRelease++

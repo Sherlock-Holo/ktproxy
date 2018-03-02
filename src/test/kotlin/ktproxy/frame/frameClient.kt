@@ -8,17 +8,13 @@ import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousSocketChannel
 
-fun main(args: Array<String>) = runBlocking {
+fun main(args: Array<String>) = runBlocking<Unit> {
     val socketChannel = AsynchronousSocketChannel.open()
-    socketChannel.aConnect(InetSocketAddress("127.0.0.2", 4567))
+    socketChannel.aConnect(InetSocketAddress("127.0.0.2", 4667))
     val buffer = ByteBuffer.allocate(8192)
-    val frame = Frame(FrameType.CLIENT, FrameContentType.BINARY, "sherlock".toByteArray())
+    val frame = Frame(FrameType.CLIENT, FrameContentType.PING, "sherlock".toByteArray())
     buffer.put(frame.frameByteArray)
 
-//    buffer.put(Frame(FrameType.CLIENT, FrameContentType.BINARY, File("/tmp/randomfile").readBytes()).frameByteArray)
     buffer.flip()
     socketChannel.aWrite(buffer)
-    buffer.clear()
-    val data = Frame.buildFrame(socketChannel, buffer, FrameType.SERVER).content
-    println(String(data))
 }
