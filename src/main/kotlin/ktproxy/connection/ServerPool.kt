@@ -9,6 +9,7 @@ import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousServerSocketChannel
 
+@Deprecated("Server no need pool now")
 class ServerPool(private val proxyAddr: String?, private val proxyPort: Int, private val key: ByteArray) {
     private val pool = LinkedListChannel<ServerConnection>()
 
