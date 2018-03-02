@@ -115,7 +115,11 @@ class Client(
                 buffer.clear()
 
                 try {
-                    connection.write(data)
+                    if (connection.write(data) < 0) {
+                        socketChannel.shutdownInput()
+                        canRelease++
+                        return@async
+                    }
 
                 } catch (e: IOException) {
                     socketChannel.close()
@@ -123,8 +127,9 @@ class Client(
                     canRelease = -1
                     return@async
                 } catch (e: ConnectionException) {
-                    socketChannel.shutdownInput()
-                    canRelease++
+                    socketChannel.close()
+                    connection.close()
+                    canRelease = -1
                     return@async
                 }
             }

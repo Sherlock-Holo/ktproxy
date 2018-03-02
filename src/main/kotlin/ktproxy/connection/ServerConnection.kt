@@ -30,9 +30,9 @@ class ServerConnection(
     var shutdownStatus = 0
 
     @Throws(IOException::class, ConnectionException::class)
-    override suspend fun write(data: ByteArray) {
-        when (shutdownStatus) {
-            2 -> throw ConnectionException("connection can't write again")
+    override suspend fun write(data: ByteArray): Int {
+        return when (shutdownStatus) {
+            2 -> -1
 
             3 -> throw ConnectionException("connection is closed")
 

@@ -29,15 +29,6 @@ class Server(
 //    private val pool = ServerPool(proxyAddr, proxyPort, key)
 
     suspend fun start() {
-        /*pool.init()
-        while (true) {
-            val connection = pool.getConn()
-
-            async {
-                handle(connection)
-            }
-        }*/
-
         val serverSocketChannel = AsynchronousServerSocketChannel.open()
 
         if (proxyAddr != null) serverSocketChannel.bind(InetSocketAddress(proxyAddr, proxyPort))
@@ -154,16 +145,20 @@ class Server(
                     buffer.clear()
 
                     try {
-                        connection.write(data)
+                        if (connection.write(data) < 0) {
+                            socketChannel.shutdownOutput()
+                            return@async true
+                        }
                     } catch (e: IOException) {
                         socketChannel.close()
                         connection.close()
 
                         break
                     } catch (e: ConnectionException) {
-                        socketChannel.shutdownInput()
+                        socketChannel.close()
+                        connection.close()
 
-                        return@async true
+                        break
                     }
                 }
                 return@async false
