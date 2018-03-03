@@ -17,12 +17,25 @@ class CoroutineReadBuffer(
 
     private var bufferContentLength = 0
 
-    override suspend fun readExactly(length: Int): ByteArray {
+    private val sb = StringBuilder()
+
+    private var readFin = false
+
+    override suspend fun readExactly(length: Int): ByteArray? {
+        if (readFin) throw IOException("already read fin")
+
+        var haveReadData = false
         while (bufferContentLength < length) {
             val readLength = socketChannel.aRead(innerBuffer)
-            if (readLength > 0) bufferContentLength += readLength
-            else {
-                throw IOException("unexpected end of stream")
+            if (readLength > 0) {
+                bufferContentLength += readLength
+                haveReadData = true
+
+            } else {
+                readFin = true
+
+                if (haveReadData) break
+                else return null
             }
         }
 
@@ -34,10 +47,13 @@ class CoroutineReadBuffer(
         return byteArray
     }
 
-    override suspend fun readLine(): String {
-        val sb = StringBuilder()
+    override suspend fun readLine(): String? {
+        sb.delete(0, sb.length)
+
         while (true) {
-            val char = readExactly(1)[0].toChar()
+            val data = readExactly(1) ?: return if (sb.isEmpty()) null else sb.toString()
+            val char = data[0].toChar()
+
             sb.append(char)
             if (char == '\n') return sb.toString()
         }
