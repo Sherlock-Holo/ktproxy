@@ -17,6 +17,6 @@ fun main(args: Array<String>) = runBlocking {
     println(socks.isSuccessful)
     val targetaddress = socks.targetAddress
     val socksInfo = Socks.build(targetaddress)
-    println(InetAddress.getByAddress(socksInfo.addr).hostAddress)
+    println(InetAddress.getByName(socksInfo.addr).hostAddress)
     println(socksInfo.port)
 }
