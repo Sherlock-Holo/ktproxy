@@ -4,15 +4,15 @@ import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.LinkedListChannel
 import kotlinx.coroutines.experimental.nio.aAccept
 import kotlinx.coroutines.experimental.nio.aRead
-import kotlinx.coroutines.experimental.nio.aWrite
 import ktproxy.connection.ClientPool
 import ktproxy.connection.ConnectionException
-import ktproxy.websocket.frame.FrameException
+import ktproxy.coroutineBuffer.CoroutineReadBuffer
+import ktproxy.coroutineBuffer.CoroutineWriteBuffer
 import ktproxy.socks.Socks
+import ktproxy.websocket.frame.FrameException
 import resocks.encrypt.Cipher
 import java.io.IOException
 import java.net.InetSocketAddress
-import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousServerSocketChannel
 import java.nio.channels.AsynchronousSocketChannel
 import java.util.logging.Level
@@ -53,8 +53,9 @@ class Client(
     }
 
     private suspend fun handle(socketChannel: AsynchronousSocketChannel) {
-        val buffer = ByteBuffer.allocate(8192)
-        val socks = Socks(socketChannel, buffer)
+        val socksReadBuffer = CoroutineReadBuffer(socketChannel)
+        val socksWriteBuffer = CoroutineWriteBuffer(socketChannel)
+        val socks = Socks(socketChannel, socksReadBuffer, socksWriteBuffer)
         socks.init()
         if (!socks.isSuccessful) {
             socketChannel.close()
@@ -103,7 +104,33 @@ class Client(
 
         // browser -> proxy
         async {
-            buffer.clear()
+            val buffer = socksReadBuffer.innerBuffer
+
+            if (buffer.position() != 0) {
+                buffer.flip()
+                val data = ByteArray(buffer.limit())
+                buffer.get(data)
+                buffer.clear()
+
+                try {
+                    if (connection.write(data) < 0) {
+                        logger.warning("connection can't write")
+                        socketChannel.shutdownInput()
+                        checkQueue.offer(true)
+                        return@async
+                    }
+
+                } catch (e: IOException) {
+                    logger.warning("connection write data failed")
+                    socketChannel.close()
+                    connection.close()
+                    checkQueue.offer(false)
+                    return@async
+                }
+
+                logger.info("write remnant data")
+            } else logger.info("no remnant data to write")
+
             while (true) {
                 try {
                     if (socketChannel.aRead(buffer) <= 0) {
@@ -187,7 +214,8 @@ class Client(
                 }
 
                 try {
-                    socketChannel.aWrite(ByteBuffer.wrap(data))
+//                    socketChannel.aWrite(ByteBuffer.wrap(data))
+                    socksWriteBuffer.write(data)
                 } catch (e: IOException) {
                     logger.warning("socketChannel IO error")
                     socketChannel.close()

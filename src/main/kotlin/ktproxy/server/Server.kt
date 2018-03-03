@@ -4,12 +4,12 @@ import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.nio.aAccept
 import kotlinx.coroutines.experimental.nio.aConnect
 import kotlinx.coroutines.experimental.nio.aRead
-import kotlinx.coroutines.experimental.nio.aWrite
 import ktproxy.connection.ConnectionException
 import ktproxy.connection.ServerConnection
-import ktproxy.websocket.frame.FrameException
+import ktproxy.coroutineBuffer.CoroutineWriteBuffer
 import ktproxy.socks.Socks
 import ktproxy.socks.SocksException
+import ktproxy.websocket.frame.FrameException
 import resocks.encrypt.Cipher
 import java.io.IOException
 import java.net.InetAddress
@@ -109,6 +109,8 @@ class Server(
             }
             logger.info("connect to target successful")
 
+            val writeBuffer = CoroutineWriteBuffer(socketChannel)
+
             // proxy -> server
             val replay1 = async {
 
@@ -139,7 +141,8 @@ class Server(
                     }
 
                     try {
-                        socketChannel.aWrite(ByteBuffer.wrap(data))
+//                        socketChannel.aWrite(ByteBuffer.wrap(data))
+                        writeBuffer.write(data)
                     } catch (e: IOException) {
                         logger.warning("socketChannel write data failed: ${e.message}")
                         socketChannel.close()

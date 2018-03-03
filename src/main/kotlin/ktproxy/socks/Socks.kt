@@ -1,13 +1,18 @@
 package ktproxy.socks
 
-import kotlinx.coroutines.experimental.nio.aRead
-import kotlinx.coroutines.experimental.nio.aWrite
+import ktproxy.coroutineBuffer.CoroutineReadBuffer
+import ktproxy.coroutineBuffer.CoroutineWriteBuffer
 import java.io.IOException
 import java.net.InetAddress
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousSocketChannel
 
-class Socks(private val socketChannel: AsynchronousSocketChannel, val buffer: ByteBuffer) {
+class Socks(
+        private val socketChannel: AsynchronousSocketChannel,
+        val readBuffer: CoroutineReadBuffer,
+        val writeBuffer: CoroutineWriteBuffer
+) {
+
     var version: Int? = null
         private set
 
@@ -30,9 +35,8 @@ class Socks(private val socketChannel: AsynchronousSocketChannel, val buffer: By
         private set
 
     suspend fun init() {
-        var length = 0
 
-        buffer.limit(2)
+        /*buffer.limit(2)
         while (length < 2) {
             try {
                 val dataRead = socketChannel.aRead(buffer)
@@ -46,11 +50,23 @@ class Socks(private val socketChannel: AsynchronousSocketChannel, val buffer: By
         buffer.flip()
         version = buffer.get().toInt() and 0xff
         val nmethods = buffer.get().toInt() and 0xff
-        buffer.clear()
+        buffer.clear()*/
+
+        val version = try {
+            (readBuffer.read() ?: throw SocksException("unexpected stream end")).toInt()
+        } catch (e: IOException) {
+            throw SocksException("an IO error has occurred")
+        }
+
+        val nmethods = try {
+            (readBuffer.read() ?: throw SocksException("unexpected stream end")).toInt()
+        } catch (e: IOException) {
+            throw SocksException("an IO error has occurred")
+        }
 
         if (version != 5) throw SocksException("socks version is $version, not 5")
 
-        val methods = ByteArray(nmethods)
+        /*val methods = ByteArray(nmethods)
         buffer.limit(nmethods)
         while (length < nmethods) {
             try {
@@ -64,17 +80,29 @@ class Socks(private val socketChannel: AsynchronousSocketChannel, val buffer: By
         length = 0
         buffer.flip()
         buffer.get(methods)
-        buffer.clear()
+        buffer.clear()*/
+
+        val methods = try {
+            readBuffer.read(nmethods) ?: throw SocksException("unexpected stream end")
+        } catch (e: IOException) {
+            throw SocksException("an IO error has occurred")
+        }
 
         if (methods.all { it.toInt() and 0xff != 0 }) throw SocksException("socks client does't use no auth mode")
 
-        val method = byteArrayOf(5, 0)
+        /*val method = byteArrayOf(5, 0)
         buffer.put(method)
         buffer.flip()
         socketChannel.aWrite(buffer)
-        buffer.clear()
+        buffer.clear()*/
 
-        buffer.limit(4)
+        try {
+            writeBuffer.write(byteArrayOf(5, 0))
+        } catch (e: IOException) {
+            throw SocksException("send socks auth failed")
+        }
+
+        /*buffer.limit(4)
         while (length < 4) {
             try {
                 val dataRead = socketChannel.aRead(buffer)
@@ -88,7 +116,13 @@ class Socks(private val socketChannel: AsynchronousSocketChannel, val buffer: By
         buffer.flip()
         val request = ByteArray(4)
         buffer.get(request)
-        buffer.clear()
+        buffer.clear()*/
+
+        val request = try {
+            readBuffer.read(4) ?: throw SocksException("unexpected stream end")
+        } catch (e: IOException) {
+            throw SocksException("an IO error has occurred")
+        }
 
         val requestVersion = request[0].toInt() and 0xff
         val cmd = request[1].toInt() and 0xff
@@ -98,7 +132,7 @@ class Socks(private val socketChannel: AsynchronousSocketChannel, val buffer: By
 
         when (atyp) {
             1 -> {
-                buffer.limit(6)
+                /*buffer.limit(6)
                 while (length < 6) {
                     try {
                         val dataRead = socketChannel.aRead(buffer)
@@ -114,7 +148,20 @@ class Socks(private val socketChannel: AsynchronousSocketChannel, val buffer: By
 
                 addr = InetAddress.getByAddress(address)
                 port = buffer.short.toInt()
-                buffer.clear()
+                buffer.clear()*/
+
+                val address = try {
+                    readBuffer.read(4) ?: throw SocksException("unexpected stream end")
+                } catch (e: IOException) {
+                    throw SocksException("an IO error has occurred")
+                }
+                addr = InetAddress.getByAddress(address)
+
+                port = try {
+                    (readBuffer.readShort() ?: throw SocksException("unexpected stream end")).toInt()
+                } catch (e: IOException) {
+                    throw SocksException("an IO error has occurred")
+                }
 
                 targetAddress = ByteArray(1 + 4 + 2)
                 targetAddress[0] = atyp.toByte()
@@ -127,23 +174,36 @@ class Socks(private val socketChannel: AsynchronousSocketChannel, val buffer: By
             }
 
             4 -> {
-                buffer.limit(16 + 2)
-                while (length < 16 + 2) {
-                    try {
-                        val dataRead = socketChannel.aRead(buffer)
-                        if (dataRead <= 0) throw SocksException("unexpected stream end")
-                        length += dataRead
-                    } catch (e: IOException) {
-                        throw SocksException("an IO error has occurred")
-                    }
-                }
-                buffer.flip()
-                val address = ByteArray(16)
-                buffer.get(address)
+                /* buffer.limit(16 + 2)
+                 while (length < 16 + 2) {
+                     try {
+                         val dataRead = socketChannel.aRead(buffer)
+                         if (dataRead <= 0) throw SocksException("unexpected stream end")
+                         length += dataRead
+                     } catch (e: IOException) {
+                         throw SocksException("an IO error has occurred")
+                     }
+                 }
+                 buffer.flip()
+                 val address = ByteArray(16)
+                 buffer.get(address)
 
+                 addr = InetAddress.getByAddress(address)
+                 port = buffer.short.toInt()
+                 buffer.clear()*/
+
+                val address = try {
+                    readBuffer.read(16) ?: throw SocksException("unexpected stream end")
+                } catch (e: IOException) {
+                    throw SocksException("an IO error has occurred")
+                }
                 addr = InetAddress.getByAddress(address)
-                port = buffer.short.toInt()
-                buffer.clear()
+
+                port = try {
+                    (readBuffer.readShort() ?: throw SocksException("unexpected stream end")).toInt()
+                } catch (e: IOException) {
+                    throw SocksException("an IO error has occurred")
+                }
 
                 targetAddress = ByteArray(1 + 16 + 2)
                 targetAddress[0] = atyp.toByte()
@@ -156,7 +216,7 @@ class Socks(private val socketChannel: AsynchronousSocketChannel, val buffer: By
             }
 
             3 -> {
-                buffer.limit(1)
+                /*buffer.limit(1)
                 if (socketChannel.aRead(buffer) <= 0) {
                     socketChannel.close()
                     throw SocksException("unexpected stream end")
@@ -164,9 +224,15 @@ class Socks(private val socketChannel: AsynchronousSocketChannel, val buffer: By
 
                 buffer.flip()
                 addrLength = buffer.get().toInt() and 0xff
-                buffer.clear()
+                buffer.clear()*/
 
-                val address = ByteArray(addrLength)
+                addrLength = try {
+                    (readBuffer.read() ?: throw SocksException("unexpected stream end")).toInt()
+                } catch (e: IOException) {
+                    throw SocksException("unexpected stream end")
+                }
+
+                /*val address = ByteArray(addrLength)
                 buffer.limit(addrLength + 2)
                 while (length < addrLength + 2) {
                     try {
@@ -182,7 +248,20 @@ class Socks(private val socketChannel: AsynchronousSocketChannel, val buffer: By
 
                 addr = InetAddress.getByName(String(address))
                 port = buffer.short.toInt()
-                buffer.clear()
+                buffer.clear()*/
+
+                val address = try {
+                    readBuffer.read(addrLength) ?: throw SocksException("unexpected stream end")
+                } catch (e: IOException) {
+                    throw SocksException("an IO error has occurred")
+                }
+                addr = InetAddress.getByName(String(address))
+
+                port = try {
+                    (readBuffer.readShort() ?: throw SocksException("unexpected stream end")).toInt()
+                } catch (e: IOException) {
+                    throw SocksException("an IO error has occurred")
+                }
 
                 targetAddress = ByteArray(1 + 1 + addrLength + 2)
                 targetAddress[0] = atyp.toByte()
@@ -198,16 +277,24 @@ class Socks(private val socketChannel: AsynchronousSocketChannel, val buffer: By
             else -> throw SocksException("unexpected atyp")
         }
 
-        buffer.put(byteArrayOf(5, 0, 0, 1))
+        val replyHeader = byteArrayOf(5, 0, 0, 1)
         val replyAddress = InetAddress.getByName("127.0.0.1").address
-        buffer.put(replyAddress)
+        /*buffer.put(replyAddress)
         buffer.putShort(1080)
         buffer.flip()
         try {
             socketChannel.aWrite(buffer)
         } catch (e: IOException) {
             throw SocksException("an IO error has occurred")
+        }*/
+
+        try {
+            writeBuffer.write(replyHeader + replyAddress)
+            writeBuffer.writeShort(0)
+        } catch (e: IOException) {
+            throw SocksException("an IO error has occurred")
         }
+
         isSuccessful = true
     }
 

@@ -11,7 +11,7 @@ class CoroutineReadBuffer(
         direct: Boolean = false
 ) : CoroutineBuffer() {
 
-    private val innerBuffer =
+    val innerBuffer =
             if (!direct) ByteBuffer.allocate(capacity)
             else ByteBuffer.allocateDirect(capacity)
 
@@ -24,18 +24,14 @@ class CoroutineReadBuffer(
     override suspend fun read(length: Int): ByteArray? {
         if (readFin) throw IOException("already read fin")
 
-        var haveReadData = false
         while (bufferContentLength < length) {
             val readLength = socketChannel.aRead(innerBuffer)
             if (readLength > 0) {
                 bufferContentLength += readLength
-                haveReadData = true
 
             } else {
                 readFin = true
-
-                if (haveReadData) break
-                else return null
+                return null
             }
         }
 
@@ -45,6 +41,11 @@ class CoroutineReadBuffer(
         innerBuffer.compact()
         bufferContentLength -= length
         return byteArray
+    }
+
+    suspend fun read(): Byte? {
+        val data = read(1) ?: return null
+        return data[0]
     }
 
     override suspend fun readLine(): String? {

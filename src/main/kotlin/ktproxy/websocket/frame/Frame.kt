@@ -136,7 +136,6 @@ class Frame(
 
         @Throws(IOException::class, FrameException::class)
         suspend fun buildFrame(buffer: CoroutineReadBuffer, frameType: FrameType): Frame {
-            var length = 0
             val contentType: FrameContentType
 
             /*buffer.limit(2)
