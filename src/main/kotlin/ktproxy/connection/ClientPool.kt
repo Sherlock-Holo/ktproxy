@@ -29,13 +29,6 @@ class ClientPool(private val proxyAddr: String, private val proxyPort: Int, priv
         try {
             if (!pool.isEmpty()) {
                 val connection = pool.removeAt(0)
-                try {
-                    connection.reset()
-                } catch (e: FrameException) {
-                    val connection = ClientConnection(proxyAddr, proxyPort, key)
-                    connection.init()
-                    return connection
-                }
                 reuseTime++
                 poolSize--
                 return connection
@@ -49,11 +42,13 @@ class ClientPool(private val proxyAddr: String, private val proxyPort: Int, priv
         return connection
     }
 
-    fun putConn(connection: ClientConnection) {
+    suspend fun putConn(connection: ClientConnection) {
         async {
             if (poolSize <= poolCapacity) {
                 reuseTime++
                 poolSize++
+
+                connection.reset()
                 pool.add(connection)
 
             } else {

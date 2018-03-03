@@ -88,6 +88,8 @@ class Server(
             }
             logger.info("read target address successful")
 
+//            println("targetByteArray length: ${targetAddress.size}")
+
             val socksInfo = try {
                 Socks.build(targetAddress)
             } catch (e: SocksException) {
@@ -100,7 +102,7 @@ class Server(
 
             val socketChannel = AsynchronousSocketChannel.open()
             try {
-                socketChannel.aConnect(InetSocketAddress(InetAddress.getByAddress(socksInfo.addr), socksInfo.port))
+                socketChannel.aConnect(InetSocketAddress(InetAddress.getByName(socksInfo.addr), socksInfo.port))
             } catch (e: IOException) {
                 logger.warning("connect to target failed")
                 socketChannel.close()

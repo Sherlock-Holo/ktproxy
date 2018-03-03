@@ -33,18 +33,6 @@ class ServerConnection(
 
     @Throws(IOException::class, ConnectionException::class)
     override suspend fun write(data: ByteArray): Int {
-        /*return when (shutdownStatus) {
-            2 -> -1
-
-            3 -> throw ConnectionException("connection is closed")
-
-            else -> {
-                val cipher = encryptCipher.encrypt(data)
-                val frame = Frame(FrameType.SERVER, FrameContentType.BINARY, cipher)
-                proxySocketChannel.aWrite(ByteBuffer.wrap(frame.frameByteArray))
-            }
-        }*/
-
         return if (!output) -1
         else {
             val cipher = encryptCipher.encrypt(data)
@@ -73,25 +61,31 @@ class ServerConnection(
 
     @Throws(IOException::class, FrameException::class)
     suspend fun init() {
-        encryptCipher = Cipher(CipherModes.AES_256_CTR, key)
+        /*encryptCipher = Cipher(CipherModes.AES_256_CTR, key)
         val encryptIV = encryptCipher.IVorNonce!!
         val encryptIVFrame = Frame(FrameType.SERVER, FrameContentType.BINARY, encryptIV)
         proxySocketChannel.aWrite(ByteBuffer.wrap(encryptIVFrame.frameByteArray))
 
         val decryptIVFrame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)
         val decryptIV = decryptIVFrame.content
-        decryptCipher = Cipher(CipherModes.AES_256_CTR, key, decryptIV)
+        decryptCipher = Cipher(CipherModes.AES_256_CTR, key, decryptIV)*/
+        initIV()
     }
 
     suspend fun reset() {
         while (!readFin) {
             val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)
-            if (frame.contentType == FrameContentType.TEXT) readFin = true
+            if (frame.contentType == FrameContentType.TEXT) {
+                decryptCipher.decrypt(frame.content)
+                readFin = true
+            }
         }
 
         readFin = false
         input = true
         output = true
+
+        initIV()
     }
 
     fun close() {
@@ -123,5 +117,16 @@ class ServerConnection(
 
             else -> false
         }
+    }
+
+    private suspend fun initIV() {
+        encryptCipher = Cipher(CipherModes.AES_256_CTR, key)
+        val encryptIV = encryptCipher.IVorNonce!!
+        val encryptIVFrame = Frame(FrameType.SERVER, FrameContentType.BINARY, encryptIV)
+        proxySocketChannel.aWrite(ByteBuffer.wrap(encryptIVFrame.frameByteArray))
+
+        val decryptIVFrame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)
+        val decryptIV = decryptIVFrame.content
+        decryptCipher = Cipher(CipherModes.AES_256_CTR, key, decryptIV)
     }
 }

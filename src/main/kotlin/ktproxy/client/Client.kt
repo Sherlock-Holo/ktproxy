@@ -1,7 +1,7 @@
 package ktproxy.client
 
 import kotlinx.coroutines.experimental.async
-import kotlinx.coroutines.experimental.delay
+import kotlinx.coroutines.experimental.channels.LinkedListChannel
 import kotlinx.coroutines.experimental.nio.aAccept
 import kotlinx.coroutines.experimental.nio.aRead
 import kotlinx.coroutines.experimental.nio.aWrite
@@ -71,26 +71,22 @@ class Client(
         logger.info("get connection successful")
 
 
-        var canRelease = 0
+        val checkQueue = LinkedListChannel<Boolean>()
         async {
-            loop@ while (true) {
-                when (canRelease) {
-                    -1 -> {
-                        logger.warning("connection error, discard this connection")
-                        break@loop
-                    }
-
-                    0, 1 -> delay(100)
-
-                    else -> {
-                        logger.fine("reuse this connection")
-                        pool.putConn(connection)
-                        break@loop
-                    }
+            for (i in 0 until 2) {
+                if (!checkQueue.receive()) {
+                    logger.warning("connection error, discard this connection")
+                    break
                 }
             }
+            try {
+                pool.putConn(connection)
+                logger.info("reuse this connection successful")
+            } catch (e: FrameException) {
+                logger.info("reuse this connection failed")
+                connection.close()
+            }
         }
-
 
 
         try {
@@ -99,7 +95,7 @@ class Client(
             logger.warning("send target address failed: ${e.message}")
             connection.close()
             socketChannel.close()
-            canRelease = -1
+            checkQueue.offer(false)
             return
         }
         logger.info("send target address successful")
@@ -117,11 +113,11 @@ class Client(
                         } catch (e: IOException) {
                             logger.warning("connection shutdownOutput failed: ${e.message}")
                             connection.close()
-                            canRelease = -1
+                            checkQueue.offer(false)
                             return@async
                         }
 
-                        canRelease++
+                        checkQueue.offer(true)
                         return@async
                     }
                 } catch (e: IOException) {
@@ -132,10 +128,10 @@ class Client(
                     } catch (e: IOException) {
                         logger.warning("connection shutdownOutput failed: ${e.message}")
                         connection.close()
-                        canRelease = -1
+                        checkQueue.offer(false)
                         return@async
                     }
-                    canRelease++
+                    checkQueue.offer(true)
                     return@async
                 }
 
@@ -148,7 +144,7 @@ class Client(
                     if (connection.write(data) < 0) {
                         logger.warning("connection can't write")
                         socketChannel.shutdownInput()
-                        canRelease++
+                        checkQueue.offer(true)
                         return@async
                     }
 
@@ -156,7 +152,7 @@ class Client(
                     logger.warning("connection write data failed")
                     socketChannel.close()
                     connection.close()
-                    canRelease = -1
+                    checkQueue.offer(false)
                     return@async
                 }
             }
@@ -170,21 +166,21 @@ class Client(
 
                 } catch (e: ConnectionException) {
                     socketChannel.shutdownOutput()
-                    canRelease++
+                    checkQueue.offer(true)
                     return@async
 
                 } catch (e: FrameException) {
                     logger.warning("connection read data failed")
                     socketChannel.close()
                     connection.close()
-                    canRelease = -1
+                    checkQueue.offer(false)
                     return@async
                 }
 
                 if (data == null) {
                     socketChannel.shutdownOutput()
                     connection.shutdownInput()
-                    canRelease++
+                    checkQueue.offer(true)
                     return@async
                 }
 
@@ -194,7 +190,7 @@ class Client(
                     logger.warning("socketChannel IO error")
                     socketChannel.close()
                     connection.shutdownInput()
-                    canRelease++
+                    checkQueue.offer(true)
                     return@async
                 }
             }

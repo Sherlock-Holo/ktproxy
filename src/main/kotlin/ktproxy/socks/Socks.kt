@@ -213,29 +213,29 @@ class Socks(private val socketChannel: AsynchronousSocketChannel, val buffer: By
 
 
     companion object {
-        data class SocksInfo(val addr: ByteArray, val port: Int)
+        data class SocksInfo(val addr: String, val port: Int)
 
         fun build(targetAddress: ByteArray): SocksInfo {
             val atyp = targetAddress[0].toInt() and 0xff
 
-            val addr: ByteArray
+            val addr: String
             val port: Int
 
             when (atyp) {
                 1 -> {
-                    addr = targetAddress.copyOfRange(1, 5)
+                    addr = InetAddress.getByAddress(targetAddress.copyOfRange(1, 5)).hostAddress
                     port = ByteBuffer.wrap(targetAddress.copyOfRange(5, 7)).short.toInt()
 
                 }
 
                 3 -> {
                     val addrLength = targetAddress[1].toInt() and 0xff
-                    addr = targetAddress.copyOfRange(2, 2 + addrLength)
+                    addr = InetAddress.getByName(String(targetAddress.copyOfRange(2, 2 + addrLength))).hostAddress
                     port = ByteBuffer.wrap(targetAddress.copyOfRange(2 + addrLength, 4 + addrLength)).short.toInt()
                 }
 
                 4 -> {
-                    addr = targetAddress.copyOfRange(1, 17)
+                    addr = InetAddress.getByAddress(targetAddress.copyOfRange(1, 17)).hostAddress
                     port = ByteBuffer.wrap(targetAddress.copyOfRange(17, 19)).short.toInt()
                 }
 
