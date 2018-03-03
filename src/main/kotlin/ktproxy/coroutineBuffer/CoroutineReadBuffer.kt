@@ -1,15 +1,23 @@
-package ktproxy.buffer
+package ktproxy.coroutineBuffer
 
 import kotlinx.coroutines.experimental.nio.aRead
 import java.io.IOException
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousSocketChannel
 
-class CoroutineBuffer(capacity: Int = 8192) {
-    private val innerBuffer = ByteBuffer.allocate(capacity)
+class CoroutineReadBuffer(
+        private val socketChannel: AsynchronousSocketChannel,
+        capacity: Int = 8192,
+        direct: Boolean = false
+) : CoroutineBuffer() {
+
+    private val innerBuffer =
+            if (!direct) ByteBuffer.allocate(capacity)
+            else ByteBuffer.allocateDirect(capacity)
+
     private var bufferContentLength = 0
 
-    suspend fun readn0(socketChannel: AsynchronousSocketChannel, length: Int): ByteArray {
+    override suspend fun readExactly(length: Int): ByteArray {
         while (bufferContentLength < length) {
             val readLength = socketChannel.aRead(innerBuffer)
             if (readLength > 0) bufferContentLength += readLength
@@ -26,12 +34,20 @@ class CoroutineBuffer(capacity: Int = 8192) {
         return byteArray
     }
 
-    suspend fun readLine0(socketChannel: AsynchronousSocketChannel): String {
+    override suspend fun readLine(): String {
         val sb = StringBuilder()
         while (true) {
-            val char = readn0(socketChannel, 1)[0].toChar()
+            val char = readExactly(1)[0].toChar()
             sb.append(char)
             if (char == '\n') return sb.toString()
         }
+    }
+
+    override suspend fun write(data: ByteArray): Int {
+        throw OnlyReadable("buffer is only readable")
+    }
+
+    override suspend fun writeline(line: String): Int {
+        throw OnlyReadable("buffer is only readable")
     }
 }
