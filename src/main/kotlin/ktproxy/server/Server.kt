@@ -18,6 +18,7 @@ import java.net.StandardSocketOptions
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousServerSocketChannel
 import java.nio.channels.AsynchronousSocketChannel
+import java.util.logging.Logger
 
 class Server(
         private val proxyAddr: String?,
@@ -25,6 +26,8 @@ class Server(
         password: String
 ) {
     private val key = Cipher.password2key(password)
+
+    private val logger = Logger.getLogger("ktproxy-server logger")
 
 //    private val pool = ServerPool(proxyAddr, proxyPort, key)
 
@@ -38,6 +41,7 @@ class Server(
             val socketChannel = serverSocketChannel.aAccept()
             socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true)
             socketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true)
+            logger.fine("accept new connection")
 
             async {
                 val connection = ServerConnection(socketChannel, key)
@@ -59,31 +63,38 @@ class Server(
             val targetAddress = try {
                 connection.read()
             } catch (e: FrameException) {
+                logger.warning("read target address failed: ${e.message}")
                 connection.close()
                 return
             }
 
             if (targetAddress == null) {
+                logger.warning("read target address failed")
                 connection.close()
                 return
             }
+            logger.info("read target address successful")
 
             val socksInfo = try {
                 Socks.build(targetAddress)
             } catch (e: SocksException) {
-                e.printStackTrace()
+                logger.warning("build socks info failed: ${e.message}")
+//                e.printStackTrace()
                 connection.close()
                 return
             }
+            logger.info("get socks info")
 
             val socketChannel = AsynchronousSocketChannel.open()
             try {
                 socketChannel.aConnect(InetSocketAddress(InetAddress.getByAddress(socksInfo.addr), socksInfo.port))
             } catch (e: IOException) {
+                logger.warning("connect to target failed")
                 socketChannel.close()
                 connection.close()
                 return
             }
+            logger.info("connect to target successful")
 
             // proxy -> server
             val replay1 = async {
@@ -92,6 +103,7 @@ class Server(
                     val data = try {
                         connection.read()
                     } catch (e: FrameException) {
+                        logger.warning("connection read data failed: ${e.message}")
                         socketChannel.close()
                         connection.close()
 
@@ -99,12 +111,14 @@ class Server(
 
                         // only connection close will throw this exception
                     } catch (e: ConnectionException) {
+                        logger.warning(e.message)
                         socketChannel.shutdownOutput()
 
                         return@async
                     }
 
                     if (data == null) {
+                        logger.info("read FIN")
                         socketChannel.shutdownOutput()
                         connection.shutdownInput()
 
@@ -114,6 +128,7 @@ class Server(
                     try {
                         socketChannel.aWrite(ByteBuffer.wrap(data))
                     } catch (e: IOException) {
+                        logger.warning("socketChannel write data failed: ${e.message}")
                         socketChannel.close()
                         connection.shutdownInput()
 
@@ -129,11 +144,13 @@ class Server(
                 while (true) {
                     try {
                         if (socketChannel.aRead(buffer) <= 0) {
+                            logger.fine("socketChannel read FIN")
                             socketChannel.shutdownInput()
                             try {
                                 connection.shutdownOutput()
 
                             } catch (e: IOException) {
+                                logger.warning("connection shutdownOutput failed: ${e.message}")
                                 socketChannel.close()
                                 connection.close()
 
@@ -143,11 +160,13 @@ class Server(
                         }
 
                     } catch (e: IOException) {
+                        logger.warning("socketChannel read data failed: ${e.message}")
                         socketChannel.close()
                         try {
                             connection.shutdownOutput()
 
                         } catch (e: IOException) {
+                            logger.warning("connection shutdownOutput failed: ${e.message}")
                             socketChannel.close()
                             connection.close()
 
@@ -167,6 +186,7 @@ class Server(
                                 connection.shutdownOutput()
 
                             } catch (e: IOException) {
+                                logger.warning("connection shutdownOutput failed: ${e.message}")
                                 socketChannel.close()
                                 connection.close()
 
@@ -176,6 +196,7 @@ class Server(
                         }
 
                     } catch (e: IOException) {
+                        logger.warning("connection write data failed: ${e.message}")
                         socketChannel.close()
                         connection.close()
 
