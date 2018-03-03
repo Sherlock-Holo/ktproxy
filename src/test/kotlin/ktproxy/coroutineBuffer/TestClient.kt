@@ -11,5 +11,5 @@ fun main(args: Array<String>) = runBlocking {
     val buffer = CoroutineReadBuffer(socketChannel)
 
     println(buffer.readLine())
-    println(String(buffer.readExactly(7)!!))
+    println(String(buffer.read(7)!!))
 }

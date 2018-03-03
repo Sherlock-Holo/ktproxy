@@ -21,7 +21,7 @@ class CoroutineReadBuffer(
 
     private var readFin = false
 
-    override suspend fun readExactly(length: Int): ByteArray? {
+    override suspend fun read(length: Int): ByteArray? {
         if (readFin) throw IOException("already read fin")
 
         var haveReadData = false
@@ -51,7 +51,7 @@ class CoroutineReadBuffer(
         sb.delete(0, sb.length)
 
         while (true) {
-            val data = readExactly(1) ?: return if (sb.isEmpty()) null else sb.toString()
+            val data = read(1) ?: return if (sb.isEmpty()) null else sb.toString()
             val char = data[0].toChar()
 
             sb.append(char)

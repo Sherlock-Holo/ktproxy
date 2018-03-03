@@ -14,7 +14,7 @@ class CoroutineWriteBuffer(
             if (!direct) ByteBuffer.allocate(capacity)
             else ByteBuffer.allocateDirect(capacity)
 
-    override suspend fun readExactly(length: Int): ByteArray {
+    override suspend fun read(length: Int): ByteArray {
         throw OnlyWritable("buffer is only writable")
     }
 
