@@ -25,9 +25,9 @@ class ClientPool(private val proxyAddr: String, private val proxyPort: Int, priv
 
     @Throws(IOException::class, FrameException::class)
     suspend fun getConn(): ClientConnection {
-        lock.receive()
+        /*lock.receive()
         try {
-            /*if (!pool.isEmpty()) {
+            *//*if (!pool.isEmpty()) {
                 val connection = pool.removeAt(0)
                 reuseTime++
                 poolSize--
@@ -35,7 +35,7 @@ class ClientPool(private val proxyAddr: String, private val proxyPort: Int, priv
                 connection.reset()
 
                 return connection
-            }*/
+            }*//*
 
             while (!pool.isEmpty()) {
                 val connection = pool.removeAt(0)
@@ -52,11 +52,38 @@ class ClientPool(private val proxyAddr: String, private val proxyPort: Int, priv
             }
         } finally {
             lock.offer(2018)
+        }*/
+
+        var connection: ClientConnection?
+
+        while (true) {
+            connection = getConn0()
+            if (connection == null) break
+            else {
+                try {
+                    connection.reset()
+                    return connection
+                } catch (e: FrameException) {
+                } catch (e: IOException) {
+                }
+            }
+
         }
 
-        val connection = ClientConnection(proxyAddr, proxyPort, key)
+        connection = ClientConnection(proxyAddr, proxyPort, key)
         connection.init()
         return connection
+    }
+
+    private suspend fun getConn0(): ClientConnection? {
+        lock.receive()
+        return try {
+            if (!pool.isEmpty()) pool.removeAt(0)
+            else null
+            
+        } finally {
+            lock.offer(2018)
+        }
     }
 
     fun putConn(connection: ClientConnection) {
