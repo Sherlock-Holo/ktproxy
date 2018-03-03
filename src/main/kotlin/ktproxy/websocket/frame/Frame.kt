@@ -1,4 +1,4 @@
-package ktproxy.frame
+package ktproxy.websocket.frame
 
 import kotlinx.coroutines.experimental.nio.aRead
 import java.io.IOException

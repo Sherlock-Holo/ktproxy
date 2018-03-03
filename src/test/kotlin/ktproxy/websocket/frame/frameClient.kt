@@ -1,9 +1,8 @@
-package ktproxy.frame
+package ktproxy.websocket.frame
 
 import kotlinx.coroutines.experimental.nio.aConnect
 import kotlinx.coroutines.experimental.nio.aWrite
 import kotlinx.coroutines.experimental.runBlocking
-import java.io.File
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousSocketChannel

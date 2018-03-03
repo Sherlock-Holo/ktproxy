@@ -4,7 +4,7 @@ import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.channels.LinkedListChannel
 import kotlinx.coroutines.experimental.nio.aAccept
 import kotlinx.coroutines.experimental.nio.aWrite
-import ktproxy.frame.FrameException
+import ktproxy.websocket.frame.FrameException
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.nio.ByteBuffer

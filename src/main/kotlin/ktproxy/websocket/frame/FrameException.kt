@@ -1,4 +1,4 @@
-package ktproxy.frame
+package ktproxy.websocket.frame
 
 import ktproxy.KtproxyException
 

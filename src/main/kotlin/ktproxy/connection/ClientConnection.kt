@@ -2,10 +2,10 @@ package ktproxy.connection
 
 import kotlinx.coroutines.experimental.nio.aConnect
 import kotlinx.coroutines.experimental.nio.aWrite
-import ktproxy.frame.Frame
-import ktproxy.frame.FrameContentType
-import ktproxy.frame.FrameException
-import ktproxy.frame.FrameType
+import ktproxy.websocket.frame.Frame
+import ktproxy.websocket.frame.FrameContentType
+import ktproxy.websocket.frame.FrameException
+import ktproxy.websocket.frame.FrameType
 import resocks.encrypt.Cipher
 import resocks.encrypt.CipherModes
 import java.io.IOException

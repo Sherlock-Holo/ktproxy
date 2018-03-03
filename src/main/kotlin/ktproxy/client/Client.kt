@@ -7,7 +7,7 @@ import kotlinx.coroutines.experimental.nio.aRead
 import kotlinx.coroutines.experimental.nio.aWrite
 import ktproxy.connection.ClientPool
 import ktproxy.connection.ConnectionException
-import ktproxy.frame.FrameException
+import ktproxy.websocket.frame.FrameException
 import ktproxy.socks.Socks
 import resocks.encrypt.Cipher
 import java.io.IOException
