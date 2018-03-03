@@ -61,14 +61,6 @@ class ServerConnection(
 
     @Throws(IOException::class, FrameException::class)
     suspend fun init() {
-        /*encryptCipher = Cipher(CipherModes.AES_256_CTR, key)
-        val encryptIV = encryptCipher.IVorNonce!!
-        val encryptIVFrame = Frame(FrameType.SERVER, FrameContentType.BINARY, encryptIV)
-        proxySocketChannel.aWrite(ByteBuffer.wrap(encryptIVFrame.frameByteArray))
-
-        val decryptIVFrame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)
-        val decryptIV = decryptIVFrame.content
-        decryptCipher = Cipher(CipherModes.AES_256_CTR, key, decryptIV)*/
         initIV()
     }
 

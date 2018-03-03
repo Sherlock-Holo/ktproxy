@@ -65,15 +65,6 @@ class ClientConnection(
         proxySocketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true)
         proxySocketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true)
 
-        /*encryptCipher = Cipher(CipherModes.AES_256_CTR, key)
-        val iv = encryptCipher.IVorNonce!!
-        val encryptIVFrame = Frame(FrameType.CLIENT, FrameContentType.BINARY, iv)
-        proxySocketChannel.aWrite(ByteBuffer.wrap(encryptIVFrame.frameByteArray))
-
-        val decryptIVFrame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.SERVER)
-        val decryptIV = decryptIVFrame.content
-        decryptCipher = Cipher(CipherModes.AES_256_CTR, key, decryptIV)*/
-
         initIV()
     }
 

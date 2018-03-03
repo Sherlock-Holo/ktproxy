@@ -35,8 +35,6 @@ class Server(
         }
         get() = logger.level
 
-//    private val pool = ServerPool(proxyAddr, proxyPort, key)
-
     suspend fun start() {
         val serverSocketChannel = AsynchronousServerSocketChannel.open()
 
@@ -91,13 +89,10 @@ class Server(
             }
             logger.info("read target address successful")
 
-//            println("targetByteArray length: ${targetAddress.size}")
-
             val socksInfo = try {
                 Socks.build(targetAddress)
             } catch (e: SocksException) {
                 logger.warning("reuse: $reuse, build socks info failed: ${e.message}")
-//                e.printStackTrace()
                 connection.close()
                 return
             }
