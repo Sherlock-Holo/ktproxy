@@ -1,3 +1,3 @@
 package ktproxy
 
-open class KtproxyException(reason: String) : Throwable(reason)
+open class KtproxyException(override val message: String?) : Throwable()
