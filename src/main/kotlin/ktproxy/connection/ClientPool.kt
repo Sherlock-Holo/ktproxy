@@ -27,10 +27,27 @@ class ClientPool(private val proxyAddr: String, private val proxyPort: Int, priv
     suspend fun getConn(): ClientConnection {
         lock.receive()
         try {
-            if (!pool.isEmpty()) {
+            /*if (!pool.isEmpty()) {
                 val connection = pool.removeAt(0)
                 reuseTime++
                 poolSize--
+
+                connection.reset()
+
+                return connection
+            }*/
+
+            while (!pool.isEmpty()) {
+                val connection = pool.removeAt(0)
+                poolSize--
+
+                try {
+                    connection.reset()
+                } catch (e: FrameException) {
+                } catch (e: IOException) {
+                }
+                reuseTime++
+
                 return connection
             }
         } finally {
@@ -42,13 +59,13 @@ class ClientPool(private val proxyAddr: String, private val proxyPort: Int, priv
         return connection
     }
 
-    suspend fun putConn(connection: ClientConnection) {
+    fun putConn(connection: ClientConnection) {
         async {
             if (poolSize <= poolCapacity) {
                 reuseTime++
                 poolSize++
 
-                connection.reset()
+//                connection.reset()
                 pool.add(connection)
 
             } else {
