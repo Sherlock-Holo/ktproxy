@@ -3,6 +3,7 @@ package ktproxy.client
 import kotlinx.coroutines.experimental.runBlocking
 import ktproxy.config.Config
 import java.io.File
+import java.util.logging.Level
 
 fun main(args: Array<String>) = runBlocking {
     if (args.size != 2) {
@@ -33,6 +34,9 @@ fun main(args: Array<String>) = runBlocking {
             poolCapacity,
             telnetPort
     )
+
+    if (config.getMap("gernal")["debug"] as Boolean) client.loggerLevel = Level.FINE
+    else client.loggerLevel = Level.WARNING
 
     client.start()
 }

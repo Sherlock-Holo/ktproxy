@@ -1,5 +1,6 @@
 [gernal]
 password = "test"
+debug = false
 
 [local]
 listenAddr = '127.0.0.2'

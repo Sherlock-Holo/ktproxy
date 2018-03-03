@@ -29,6 +29,11 @@ class Server(
     private val key = Cipher.password2key(password)
 
     private val logger = Logger.getLogger("ktproxy-server logger")
+    var loggerLevel: Level
+        set(value) {
+            logger.level = value
+        }
+        get() = logger.level
 
 //    private val pool = ServerPool(proxyAddr, proxyPort, key)
 
@@ -37,8 +42,6 @@ class Server(
 
         if (proxyAddr != null) serverSocketChannel.bind(InetSocketAddress(proxyAddr, proxyPort))
         else serverSocketChannel.bind(InetSocketAddress(proxyPort))
-
-        logger.level = Level.WARNING
 
         while (true) {
             val socketChannel = serverSocketChannel.aAccept()

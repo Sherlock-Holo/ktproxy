@@ -15,6 +15,7 @@ import java.net.InetSocketAddress
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousServerSocketChannel
 import java.nio.channels.AsynchronousSocketChannel
+import java.util.logging.Level
 import java.util.logging.Logger
 
 class Client(
@@ -32,6 +33,11 @@ class Client(
     private val pool = ClientPool(proxyAddr, proxyPort, key, poolCapacity)
 
     private val logger = Logger.getLogger("ktproxy-client logger")
+    var loggerLevel: Level
+        set(value) {
+            logger.level = value
+        }
+        get() = logger.level
 
     init {
         listenSocketChannel.bind(InetSocketAddress(listenAddr, listenPort))
@@ -79,13 +85,8 @@ class Client(
                     break
                 }
             }
-            try {
-                pool.putConn(connection)
-                logger.info("reuse this connection successful")
-            } catch (e: FrameException) {
-                logger.info("reuse this connection failed")
-                connection.close()
-            }
+
+            pool.putConn(connection)
         }
 
 
