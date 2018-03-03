@@ -59,6 +59,24 @@ class CoroutineReadBuffer(
         }
     }
 
+    suspend fun readShort(): Short? {
+        val data = read(2) ?: return null
+
+        return ByteBuffer.wrap(data).short
+    }
+
+    suspend fun readInt(): Int? {
+        val data = read(4) ?: return null
+
+        return ByteBuffer.wrap(data).int
+    }
+
+    suspend fun readLong(): Long? {
+        val data = read(8) ?: return null
+
+        return ByteBuffer.wrap(data).long
+    }
+
     override suspend fun write(data: ByteArray): Int {
         throw OnlyReadable("buffer is only readable")
     }

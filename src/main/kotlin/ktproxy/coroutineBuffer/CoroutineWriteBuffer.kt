@@ -29,5 +29,23 @@ class CoroutineWriteBuffer(
         return socketChannel.aWrite(innerBuffer)
     }
 
+    suspend fun writeShort(n: Short): Int {
+        val data = ByteArray(2)
+        ByteBuffer.wrap(data).putShort(n)
+        return write(data)
+    }
+
+    suspend fun writeInt(n: Int): Int {
+        val data = ByteArray(4)
+        ByteBuffer.wrap(data).putInt(n)
+        return write(data)
+    }
+
+    suspend fun writeLong(n: Long): Int {
+        val data = ByteArray(8)
+        ByteBuffer.wrap(data).putLong(n)
+        return write(data)
+    }
+
     override suspend fun writeline(line: String) = write(line.toByteArray())
 }
