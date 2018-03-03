@@ -1,6 +1,7 @@
 package ktproxy.connection
 
 import kotlinx.coroutines.experimental.nio.aWrite
+import ktproxy.coroutineBuffer.CoroutineReadBuffer
 import ktproxy.websocket.frame.Frame
 import ktproxy.websocket.frame.FrameContentType
 import ktproxy.websocket.frame.FrameException
@@ -21,7 +22,7 @@ class ServerConnection(
         proxySocketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true)
     }
 
-    private val readBuffer = ByteBuffer.allocate(8192)
+    private val readBuffer = CoroutineReadBuffer(proxySocketChannel)
 
     private lateinit var encryptCipher: Cipher
     private lateinit var decryptCipher: Cipher
@@ -45,7 +46,7 @@ class ServerConnection(
     override suspend fun read(): ByteArray? {
         if (!input) throw ConnectionException("connection can't read again")
         else {
-            val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)
+            val frame = Frame.buildFrame(readBuffer, FrameType.CLIENT)
 
             return when (frame.contentType) {
                 FrameContentType.TEXT -> {
@@ -66,7 +67,7 @@ class ServerConnection(
 
     suspend fun reset() {
         while (!readFin) {
-            val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)
+            val frame = Frame.buildFrame(readBuffer, FrameType.CLIENT)
             if (frame.contentType == FrameContentType.TEXT) {
                 decryptCipher.decrypt(frame.content)
                 readFin = true
@@ -102,7 +103,7 @@ class ServerConnection(
 
     @Deprecated("will not use destroy")
     suspend fun destroy(): Boolean {
-        val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)
+        val frame = Frame.buildFrame(readBuffer, FrameType.CLIENT)
         val plain = decryptCipher.decrypt(frame.content)
         return when {
             plain.contentEquals("destroy".toByteArray()) -> true
@@ -117,7 +118,7 @@ class ServerConnection(
         val encryptIVFrame = Frame(FrameType.SERVER, FrameContentType.BINARY, encryptIV)
         proxySocketChannel.aWrite(ByteBuffer.wrap(encryptIVFrame.frameByteArray))
 
-        val decryptIVFrame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)
+        val decryptIVFrame = Frame.buildFrame(readBuffer, FrameType.CLIENT)
         val decryptIV = decryptIVFrame.content
         decryptCipher = Cipher(CipherModes.AES_256_CTR, key, decryptIV)
     }

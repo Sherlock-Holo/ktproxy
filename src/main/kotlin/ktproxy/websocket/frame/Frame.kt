@@ -1,9 +1,8 @@
 package ktproxy.websocket.frame
 
-import kotlinx.coroutines.experimental.nio.aRead
+import ktproxy.coroutineBuffer.CoroutineReadBuffer
 import java.io.IOException
 import java.nio.ByteBuffer
-import java.nio.channels.AsynchronousSocketChannel
 import java.util.*
 import kotlin.experimental.xor
 
@@ -136,11 +135,11 @@ class Frame(
     companion object {
 
         @Throws(IOException::class, FrameException::class)
-        suspend fun buildFrame(socketChannel: AsynchronousSocketChannel, buffer: ByteBuffer, frameType: FrameType): Frame {
+        suspend fun buildFrame(buffer: CoroutineReadBuffer, frameType: FrameType): Frame {
             var length = 0
             val contentType: FrameContentType
 
-            buffer.limit(2)
+            /*buffer.limit(2)
             val frameHeader = ByteArray(2)
             while (length < 2) {
                 val dataRead = socketChannel.aRead(buffer)
@@ -150,7 +149,13 @@ class Frame(
             length = 0
             buffer.flip()
             buffer.get(frameHeader)
-            buffer.clear()
+            buffer.clear()*/
+
+            val frameHeader = try {
+                buffer.read(2)
+            } catch (e: IOException) {
+                throw FrameException("read frame header failed")
+            } ?: throw FrameException("read frame header failed")
 
             when (frameHeader[0].toInt() and 0xff) {
             // text frame
@@ -182,7 +187,7 @@ class Frame(
                 }
 
                 initPayloadLength == 126 -> {
-                    buffer.limit(2)
+                    /*buffer.limit(2)
                     while (length < 2) {
                         val dataRead = socketChannel.aRead(buffer)
                         if (dataRead <= 0) throw FrameException("unexpected stream end")
@@ -192,12 +197,20 @@ class Frame(
                     buffer.flip()
                     val result = buffer.short.toInt()
                     buffer.clear()
-                    result
+                    result*/
+
+                    try {
+                        val short = buffer.readShort() ?: throw FrameException("read initPayloadLength failed")
+
+                        short.toInt()
+                    } catch (e: IOException) {
+                        throw FrameException("read initPayloadLength failed")
+                    }
                 }
 
                 initPayloadLength == 127 -> {
 //                    ByteBuffer.wrap(readsBuffer.readExactly(8)).long.toInt()
-                    buffer.limit(8)
+                    /*buffer.limit(8)
                     while (length < 8) {
                         val dataRead = socketChannel.aRead(buffer)
                         if (dataRead <= 0) throw FrameException("unexpected stream end")
@@ -207,7 +220,15 @@ class Frame(
                     buffer.flip()
                     val result = buffer.long.toInt()
                     buffer.clear()
-                    result
+                    result*/
+
+                    try {
+                        val long = buffer.readLong() ?: throw FrameException("read initPayloadLength failed")
+
+                        long.toInt()
+                    } catch (e: IOException) {
+                        throw FrameException("read initPayloadLength failed")
+                    }
                 }
 
                 else -> throw FrameException("unexpected init payload length: $initPayloadLength")
@@ -215,7 +236,7 @@ class Frame(
 
             when (frameType) {
                 FrameType.CLIENT -> {
-                    buffer.limit(4 + payloadLength)
+                    /*buffer.limit(4 + payloadLength)
                     val maskKey = ByteArray(4)
                     val data = ByteArray(payloadLength)
                     while (length < 4 + payloadLength) {
@@ -226,13 +247,16 @@ class Frame(
                     buffer.flip()
                     buffer.get(maskKey)
                     buffer.get(data)
-                    buffer.clear()
+                    buffer.clear()*/
+
+                    val maskKey = buffer.read(4) ?: throw FrameException("unexpected stream end")
+                    val data = buffer.read(payloadLength) ?: throw FrameException("unexpected stream end")
 
                     return Frame(frameType, contentType, mask(maskKey, data), maskKey)
                 }
 
                 FrameType.SERVER -> {
-                    buffer.limit(payloadLength)
+                    /*buffer.limit(payloadLength)
                     val data = ByteArray(payloadLength)
                     while (length < payloadLength) {
                         val dataRead = socketChannel.aRead(buffer)
@@ -241,7 +265,9 @@ class Frame(
                     }
                     buffer.flip()
                     buffer.get(data)
-                    buffer.clear()
+                    buffer.clear()*/
+
+                    val data = buffer.read(payloadLength) ?: throw FrameException("unexpected stream end")
 
                     return Frame(frameType, contentType, data)
                 }
