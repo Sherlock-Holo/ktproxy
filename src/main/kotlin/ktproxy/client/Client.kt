@@ -179,6 +179,7 @@ class Client(
                 }
 
                 if (data == null) {
+                    logger.info("connection read FIN")
                     socketChannel.shutdownOutput()
                     connection.shutdownInput()
                     checkQueue.offer(true)

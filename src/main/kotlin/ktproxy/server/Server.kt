@@ -73,7 +73,7 @@ class Server(
                     connection.close()
                     return
                 }
-                logger.warning("reset successful")
+                logger.info("reset successful")
             }
 
             val targetAddress = try {
