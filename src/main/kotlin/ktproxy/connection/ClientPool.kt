@@ -29,7 +29,13 @@ class ClientPool(private val proxyAddr: String, private val proxyPort: Int, priv
         try {
             if (!pool.isEmpty()) {
                 val connection = pool.removeAt(0)
-                connection.reset()
+                try {
+                    connection.reset()
+                } catch (e: FrameException) {
+                    val connection = ClientConnection(proxyAddr, proxyPort, key)
+                    connection.init()
+                    return connection
+                }
                 reuseTime++
                 poolSize--
                 return connection

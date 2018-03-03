@@ -28,6 +28,8 @@ class ClientConnection(
     private var input = true
     private var output = true
 
+    private var readFin = false
+
     @Throws(IOException::class)
     override suspend fun write(data: ByteArray): Int {
         return if (!input) -1
@@ -45,7 +47,10 @@ class ClientConnection(
             val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.SERVER)
 
             return when (frame.contentType) {
-                FrameContentType.TEXT -> null
+                FrameContentType.TEXT -> {
+                    readFin = true
+                    null
+                }
 
                 else -> decryptCipher.decrypt(frame.content)
             }
@@ -70,7 +75,13 @@ class ClientConnection(
         decryptCipher = Cipher(CipherModes.AES_256_CTR, key, decryptIV)
     }
 
-    fun reset() {
+    suspend fun reset() {
+        while (!readFin) {
+            val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.SERVER)
+            if (frame.contentType == FrameContentType.TEXT) readFin = true
+        }
+
+        readFin = false
         input = true
         output = true
     }

@@ -29,6 +29,8 @@ class ServerConnection(
     private var input = true
     private var output = true
 
+    private var readFin = false
+
     @Throws(IOException::class, ConnectionException::class)
     override suspend fun write(data: ByteArray): Int {
         /*return when (shutdownStatus) {
@@ -58,7 +60,10 @@ class ServerConnection(
             val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)
 
             return when (frame.contentType) {
-                FrameContentType.TEXT -> null
+                FrameContentType.TEXT -> {
+                    readFin = true
+                    null
+                }
 
                 else -> decryptCipher.decrypt(frame.content)
             }
@@ -78,7 +83,13 @@ class ServerConnection(
         decryptCipher = Cipher(CipherModes.AES_256_CTR, key, decryptIV)
     }
 
-    fun reset() {
+    suspend fun reset() {
+        while (!readFin) {
+            val frame = Frame.buildFrame(proxySocketChannel, readBuffer, FrameType.CLIENT)
+            if (frame.contentType == FrameContentType.TEXT) readFin = true
+        }
+
+        readFin = false
         input = true
         output = true
     }

@@ -18,6 +18,7 @@ import java.net.StandardSocketOptions
 import java.nio.ByteBuffer
 import java.nio.channels.AsynchronousServerSocketChannel
 import java.nio.channels.AsynchronousSocketChannel
+import java.util.logging.Level
 import java.util.logging.Logger
 
 class Server(
@@ -36,6 +37,8 @@ class Server(
 
         if (proxyAddr != null) serverSocketChannel.bind(InetSocketAddress(proxyAddr, proxyPort))
         else serverSocketChannel.bind(InetSocketAddress(proxyPort))
+
+        logger.level = Level.WARNING
 
         while (true) {
             val socketChannel = serverSocketChannel.aAccept()
@@ -57,8 +60,18 @@ class Server(
     }
 
     private suspend fun handle(connection: ServerConnection) {
+        var reuse = false
         while (true) {
-            connection.reset()
+            if (reuse) {
+                try {
+                    connection.reset()
+                } catch (e: FrameException) {
+                    logger.warning("reset failed: ${e.message}")
+                    connection.close()
+                    return
+                }
+                logger.warning("reset successful")
+            }
 
             val targetAddress = try {
                 connection.read()
@@ -78,12 +91,12 @@ class Server(
             val socksInfo = try {
                 Socks.build(targetAddress)
             } catch (e: SocksException) {
-                logger.warning("build socks info failed: ${e.message}")
+                logger.warning("reuse: $reuse, build socks info failed: ${e.message}")
 //                e.printStackTrace()
                 connection.close()
                 return
             }
-            logger.info("get socks info")
+            logger.info("reuse: $reuse, get socks info")
 
             val socketChannel = AsynchronousSocketChannel.open()
             try {
@@ -207,6 +220,7 @@ class Server(
 
             replay1.await()
             replay2.await()
+            reuse = true
         }
     }
 }
