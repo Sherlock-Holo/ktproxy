@@ -103,6 +103,17 @@ class Server(
                 logger.warning("reuse: $reuse, build socks info failed: ${e.message}")
                 connection.close()
                 return
+
+                /*connection.shutdownInput()
+                try {
+                    connection.shutdownOutput()
+                    reuse = true
+                    logger.warning("socks failed bug reuse connection")
+                    continue
+                } catch (e: IOException) {
+                    connection.close()
+                    return
+                }*/
             }
             logger.info("reuse: $reuse, get socks info")
 
@@ -206,7 +217,7 @@ class Server(
 
                     try {
                         if (connection.write(data) < 0) {
-                            try {
+                            /*try {
                                 connection.shutdownOutput()
 
                             } catch (e: IOException) {
@@ -216,7 +227,11 @@ class Server(
 
                             } finally {
                                 return@async
-                            }
+                            }*/
+
+                            logger.warning("connection can't write")
+                            socketChannel.shutdownInput()
+                            return@async
                         }
 
                     } catch (e: IOException) {
