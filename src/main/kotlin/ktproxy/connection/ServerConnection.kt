@@ -69,7 +69,7 @@ class ServerConnection(
         while (!readFin) {
             val frame = Frame.buildFrame(readBuffer, FrameType.CLIENT)
             if (frame.contentType == FrameContentType.TEXT) {
-                decryptCipher.decrypt(frame.content)
+//                decryptCipher.decrypt(frame.content)
                 readFin = true
             }
         }

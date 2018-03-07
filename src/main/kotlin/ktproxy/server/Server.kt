@@ -84,8 +84,16 @@ class Server(
 
             if (targetAddress == null) {
                 logger.warning("read target address failed")
-                connection.close()
-                return
+                connection.shutdownInput()
+
+                try {
+                    connection.shutdownOutput()
+                    reuse = true
+                    continue
+                } catch (e: IOException) {
+                    connection.close()
+                    return
+                }
             }
             logger.info("read target address successful")
 

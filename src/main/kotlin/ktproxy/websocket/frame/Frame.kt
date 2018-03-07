@@ -97,7 +97,7 @@ class Frame(
                         frameBuffer = ByteBuffer.wrap(frameByteArray)
                         frameBuffer.put(opcode.toByte())
                         frameBuffer.put(initPayloadLength.toByte())
-//                        frameBuffer.put(content)
+
                     }
                     content.size <= 65535 -> {
                         val tmp = ByteArray(2)
@@ -110,7 +110,7 @@ class Frame(
                         frameBuffer.put(opcode.toByte())
                         frameBuffer.put(initPayloadLength.toByte())
                         frameBuffer.putShort(payloadLength.toShort())
-//                        frameBuffer.put(content)
+
                     }
                     else -> {
                         val tmp = ByteArray(8)
@@ -123,7 +123,7 @@ class Frame(
                         frameBuffer.put(opcode.toByte())
                         frameBuffer.put(initPayloadLength.toByte())
                         frameBuffer.putLong(payloadLength.toLong())
-//                        frameBuffer.put(content)
+
                     }
                 }
                 frameBuffer.put(content)
@@ -137,18 +137,6 @@ class Frame(
         @Throws(IOException::class, FrameException::class)
         suspend fun buildFrame(buffer: CoroutineReadBuffer, frameType: FrameType): Frame {
             val contentType: FrameContentType
-
-            /*buffer.limit(2)
-            val frameHeader = ByteArray(2)
-            while (length < 2) {
-                val dataRead = socketChannel.aRead(buffer)
-                if (dataRead <= 0) throw FrameException("unexpected stream end")
-                length += dataRead
-            }
-            length = 0
-            buffer.flip()
-            buffer.get(frameHeader)
-            buffer.clear()*/
 
             val frameHeader = try {
                 buffer.read(2)
@@ -186,17 +174,6 @@ class Frame(
                 }
 
                 initPayloadLength == 126 -> {
-                    /*buffer.limit(2)
-                    while (length < 2) {
-                        val dataRead = socketChannel.aRead(buffer)
-                        if (dataRead <= 0) throw FrameException("unexpected stream end")
-                        length += dataRead
-                    }
-                    length = 0
-                    buffer.flip()
-                    val result = buffer.short.toInt()
-                    buffer.clear()
-                    result*/
 
                     try {
                         val short = buffer.readShort() ?: throw FrameException("read initPayloadLength failed")
@@ -208,19 +185,6 @@ class Frame(
                 }
 
                 initPayloadLength == 127 -> {
-//                    ByteBuffer.wrap(readsBuffer.readExactly(8)).long.toInt()
-                    /*buffer.limit(8)
-                    while (length < 8) {
-                        val dataRead = socketChannel.aRead(buffer)
-                        if (dataRead <= 0) throw FrameException("unexpected stream end")
-                        length += dataRead
-                    }
-                    length = 0
-                    buffer.flip()
-                    val result = buffer.long.toInt()
-                    buffer.clear()
-                    result*/
-
                     try {
                         val long = buffer.readLong() ?: throw FrameException("read initPayloadLength failed")
 
@@ -235,19 +199,6 @@ class Frame(
 
             when (frameType) {
                 FrameType.CLIENT -> {
-                    /*buffer.limit(4 + payloadLength)
-                    val maskKey = ByteArray(4)
-                    val data = ByteArray(payloadLength)
-                    while (length < 4 + payloadLength) {
-                        val dataRead = socketChannel.aRead(buffer)
-                        if (dataRead <= 0) throw FrameException("unexpected stream end")
-                        length += dataRead
-                    }
-                    buffer.flip()
-                    buffer.get(maskKey)
-                    buffer.get(data)
-                    buffer.clear()*/
-
                     val maskKey = buffer.read(4) ?: throw FrameException("unexpected stream end")
                     val data = buffer.read(payloadLength) ?: throw FrameException("unexpected stream end")
 
@@ -255,17 +206,6 @@ class Frame(
                 }
 
                 FrameType.SERVER -> {
-                    /*buffer.limit(payloadLength)
-                    val data = ByteArray(payloadLength)
-                    while (length < payloadLength) {
-                        val dataRead = socketChannel.aRead(buffer)
-                        if (dataRead <= 0) throw FrameException("unexpected stream end")
-                        length += dataRead
-                    }
-                    buffer.flip()
-                    buffer.get(data)
-                    buffer.clear()*/
-
                     val data = buffer.read(payloadLength) ?: throw FrameException("unexpected stream end")
 
                     return Frame(frameType, contentType, data)

@@ -76,7 +76,7 @@ class ClientConnection(
         while (!readFin) {
             val frame = Frame.buildFrame(readBuffer, FrameType.SERVER)
             if (frame.contentType == FrameContentType.TEXT) {
-                decryptCipher.decrypt(frame.content)
+//                decryptCipher.decrypt(frame.content)
                 readFin = true
             }
         }
@@ -106,7 +106,7 @@ class ClientConnection(
         input = false
     }
 
-    @Deprecated("will not use destroy")
+    /*@Deprecated("will not use destroy")
     suspend fun destroy(destroyIt: Boolean) {
         val cipher = encryptCipher.encrypt("destroy".toByteArray())
 
@@ -115,7 +115,7 @@ class ClientConnection(
                 else Frame(FrameType.CLIENT, FrameContentType.PONG, cipher)
 
         proxySocketChannel.aWrite(ByteBuffer.wrap(frame.frameByteArray))
-    }
+    }*/
 
     private suspend fun initIV() {
         encryptCipher = Cipher(CipherModes.AES_256_CTR, key)

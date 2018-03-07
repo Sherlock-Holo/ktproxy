@@ -78,11 +78,13 @@ class Client(
         logger.info("get connection successful")
 
 
+        // release connection
         val checkQueue = LinkedListChannel<Boolean>()
         async {
             for (i in 0 until 2) {
                 if (!checkQueue.receive()) {
                     logger.warning("connection error, discard this connection")
+                    connection.close()
                     break
                 }
             }
@@ -95,10 +97,24 @@ class Client(
             connection.write(socks.targetAddress)
         } catch (e: IOException) {
             logger.warning("send target address failed: ${e.message}")
-            connection.close()
+            /*connection.close()
             socketChannel.close()
             checkQueue.offer(false)
-            return
+            return*/
+
+            socketChannel.close()
+            connection.shutdownInput()
+            checkQueue.offer(true)
+
+            try {
+                connection.shutdownOutput()
+                checkQueue.offer(true)
+                return
+            } catch (e: IOException) {
+                checkQueue.offer(false)
+                return
+            }
+
         }
         logger.info("send target address successful")
 
@@ -140,6 +156,7 @@ class Client(
                             connection.shutdownOutput()
                         } catch (e: IOException) {
                             logger.warning("connection shutdownOutput failed: ${e.message}")
+                            socketChannel.close()
                             connection.close()
                             checkQueue.offer(false)
                             return@async
@@ -194,13 +211,13 @@ class Client(
 
                 } catch (e: ConnectionException) {
                     socketChannel.shutdownOutput()
-                    checkQueue.offer(true)
+                    checkQueue.offer(false)
                     return@async
 
                 } catch (e: FrameException) {
                     logger.warning("connection read data failed")
                     socketChannel.close()
-                    connection.close()
+//                    connection.close()
                     checkQueue.offer(false)
                     return@async
                 }
