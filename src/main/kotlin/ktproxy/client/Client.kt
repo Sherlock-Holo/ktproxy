@@ -97,12 +97,12 @@ class Client(
             connection.write(socks.targetAddress)
         } catch (e: IOException) {
             logger.warning("send target address failed: ${e.message}")
-            /*connection.close()
+            connection.close()
             socketChannel.close()
             checkQueue.offer(false)
-            return*/
+            return
 
-            socketChannel.close()
+            /*socketChannel.close()
             connection.shutdownInput()
             checkQueue.offer(true)
 
@@ -113,7 +113,7 @@ class Client(
             } catch (e: IOException) {
                 checkQueue.offer(false)
                 return
-            }
+            }*/
 
         }
         logger.info("send target address successful")
