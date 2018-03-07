@@ -75,14 +75,14 @@ class Server(
             }
 
             val targetAddress = try {
-                connection.read()
+                connection.read()!!
             } catch (e: FrameException) {
                 logger.warning("read target address failed: ${e.message}")
                 connection.close()
                 return
             }
 
-            if (targetAddress == null) {
+            /*if (targetAddress == null) {
                 logger.warning("read target address failed")
                 connection.shutdownInput()
 
@@ -94,7 +94,7 @@ class Server(
                     connection.close()
                     return
                 }
-            }
+            }*/
             logger.info("read target address successful")
 
             val socksInfo = try {
