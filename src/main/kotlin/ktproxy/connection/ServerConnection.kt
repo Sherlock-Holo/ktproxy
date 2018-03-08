@@ -6,6 +6,7 @@ import ktproxy.websocket.frame.Frame
 import ktproxy.websocket.frame.FrameContentType
 import ktproxy.websocket.frame.FrameException
 import ktproxy.websocket.frame.FrameType
+import ktproxy.websocket.http.HttpHeader
 import resocks.encrypt.Cipher
 import resocks.encrypt.CipherModes
 import java.io.IOException
@@ -62,6 +63,12 @@ class ServerConnection(
 
     @Throws(IOException::class, FrameException::class)
     suspend fun init() {
+        val clientHttpHeader = HttpHeader.getHttpHeader(readBuffer)
+        if (!clientHttpHeader.checkHttpHeader()) throw IOException("http handshake failed")
+
+        val serverHttpHeader = HttpHeader.buildHttpHeader(clientHttpHeader.secWebSocketKey!!)
+        proxySocketChannel.aWrite(ByteBuffer.wrap(serverHttpHeader.headerByteArray))
+
         initIV()
     }
 

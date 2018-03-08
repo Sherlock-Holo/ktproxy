@@ -82,19 +82,6 @@ class Server(
                 return
             }
 
-            /*if (targetAddress == null) {
-                logger.warning("read target address failed")
-                connection.shutdownInput()
-
-                try {
-                    connection.shutdownOutput()
-                    reuse = true
-                    continue
-                } catch (e: IOException) {
-                    connection.close()
-                    return
-                }
-            }*/
             logger.info("read target address successful")
 
             val socksInfo = try {
@@ -104,16 +91,6 @@ class Server(
                 connection.close()
                 return
 
-                /*connection.shutdownInput()
-                try {
-                    connection.shutdownOutput()
-                    reuse = true
-                    logger.warning("socks failed bug reuse connection")
-                    continue
-                } catch (e: IOException) {
-                    connection.close()
-                    return
-                }*/
             }
             logger.info("reuse: $reuse, get socks info")
 
@@ -217,18 +194,6 @@ class Server(
 
                     try {
                         if (connection.write(data) < 0) {
-                            /*try {
-                                connection.shutdownOutput()
-
-                            } catch (e: IOException) {
-                                logger.warning("connection shutdownOutput failed: ${e.message}")
-                                socketChannel.close()
-                                connection.close()
-
-                            } finally {
-                                return@async
-                            }*/
-
                             logger.warning("connection can't write")
                             socketChannel.shutdownInput()
                             return@async

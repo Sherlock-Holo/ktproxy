@@ -101,20 +101,6 @@ class Client(
             socketChannel.close()
             checkQueue.offer(false)
             return
-
-            /*socketChannel.close()
-            connection.shutdownInput()
-            checkQueue.offer(true)
-
-            try {
-                connection.shutdownOutput()
-                checkQueue.offer(true)
-                return
-            } catch (e: IOException) {
-                checkQueue.offer(false)
-                return
-            }*/
-
         }
         logger.info("send target address successful")
 

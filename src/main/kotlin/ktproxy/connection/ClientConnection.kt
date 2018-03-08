@@ -7,6 +7,7 @@ import ktproxy.websocket.frame.Frame
 import ktproxy.websocket.frame.FrameContentType
 import ktproxy.websocket.frame.FrameException
 import ktproxy.websocket.frame.FrameType
+import ktproxy.websocket.http.HttpHeader
 import resocks.encrypt.Cipher
 import resocks.encrypt.CipherModes
 import java.io.IOException
@@ -64,10 +65,18 @@ class ClientConnection(
         proxySocketChannel = AsynchronousSocketChannel.open()
         proxySocketChannel.aConnect(InetSocketAddress(addr, port))
 
-        readBuffer = CoroutineReadBuffer(proxySocketChannel)
-
         proxySocketChannel.setOption(StandardSocketOptions.TCP_NODELAY, true)
         proxySocketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true)
+
+        readBuffer = CoroutineReadBuffer(proxySocketChannel)
+
+        val clientHttpHeader = HttpHeader.buildHttpHeader()
+
+        proxySocketChannel.aWrite(ByteBuffer.wrap(clientHttpHeader.headerByteArray))
+
+        val serverHttpHeader = HttpHeader.getHttpHeader(readBuffer)
+
+        if (!serverHttpHeader.checkHttpHeader(clientHttpHeader.secWebSocketKey!!)) throw IOException("http handshake failed")
 
         initIV()
     }
@@ -105,17 +114,6 @@ class ClientConnection(
     fun shutdownInput() {
         input = false
     }
-
-    /*@Deprecated("will not use destroy")
-    suspend fun destroy(destroyIt: Boolean) {
-        val cipher = encryptCipher.encrypt("destroy".toByteArray())
-
-        val frame =
-                if (destroyIt) Frame(FrameType.CLIENT, FrameContentType.PING, cipher)
-                else Frame(FrameType.CLIENT, FrameContentType.PONG, cipher)
-
-        proxySocketChannel.aWrite(ByteBuffer.wrap(frame.frameByteArray))
-    }*/
 
     private suspend fun initIV() {
         encryptCipher = Cipher(CipherModes.AES_256_CTR, key)

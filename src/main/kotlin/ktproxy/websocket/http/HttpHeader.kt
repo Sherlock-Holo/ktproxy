@@ -6,7 +6,7 @@ import java.security.MessageDigest
 import java.util.*
 
 class HttpHeader {
-    private val header: String
+    val header: String
     val secWebSocketKey: String?
     private val secWebSocketAccept: String?
 
@@ -51,9 +51,11 @@ class HttpHeader {
         }
     }
 
-    fun getHeaderByteArray() = header.toByteArray()
+    //    fun getHeaderByteArray() = header.toByteArray()
+    val headerByteArray get() = header.toByteArray()
 
-    fun getHeaderString() = header
+    //    fun getHeaderString() = header
+//    val headerString get() = header
 
     fun checkHttpHeader(): Boolean {
         // server checks client handshake
@@ -86,7 +88,6 @@ class HttpHeader {
         fun buildHttpHeader(secWebSocketKey: String) = HttpHeader(false, genSecWebSocketAccept(secWebSocketKey))
 
         // offer client http header
-
         fun buildHttpHeader(): HttpHeader {
             val array = ByteArray(16)
             Random().nextBytes(array)
